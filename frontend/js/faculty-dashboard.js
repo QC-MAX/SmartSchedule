@@ -17,7 +17,10 @@ window.departmentMapping = {
     'IC': 'Islamic Culture',
     'IT': 'Information Technology',
     'IS': 'Information Systems',
-    'Math': 'Mathematics'
+    'Math': 'Mathematics',
+    'CEN': 'Computer engineering'
+
+   
 };
 
 // ============================================

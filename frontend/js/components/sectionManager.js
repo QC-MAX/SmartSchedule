@@ -79,41 +79,126 @@ class SectionManager {
         }
     }
 
-    displayPatternGuidance(pattern, creditHours) {
-        const alert = document.getElementById('patternGuidanceAlert');
-        const requirements = document.getElementById('patternRequirements');
-        
-        let html = `
-            <div class="row">
-                <div class="col-md-6">
-                    <p class="mb-2"><strong>Pattern Type:</strong> ${pattern.type.replace(/_/g, ' ').toUpperCase()}</p>
-                    <p class="mb-2"><strong>Credit Hours:</strong> ${creditHours}</p>
-                    <p class="mb-0"><strong>Total Duration:</strong> ${pattern.total_hours}h/week</p>
-                </div>
-                <div class="col-md-6">
-                    <strong>Required Sections:</strong>
-                    <div class="mt-2">
-        `;
-        
-        if (pattern.lecture_hours > 0) {
-            html += `<div class="badge bg-primary me-2 mb-2">🎓 Lecture: <strong>${pattern.lecture_hours}h</strong></div>`;
-        }
-        if (pattern.lab_hours > 0) {
-            html += `<div class="badge bg-success me-2 mb-2">🧪 Lab: <strong>${pattern.lab_hours}h</strong></div>`;
-        }
-        if (pattern.tutorial_hours > 0) {
-            html += `<div class="badge bg-info me-2 mb-2">📚 Tutorial: <strong>${pattern.tutorial_hours}h</strong></div>`;
-        }
-        
-        html += `
-                    </div>
+   displayPatternGuidance(pattern, creditHours) {
+    const alert = document.getElementById('patternGuidanceAlert');
+    const requirements = document.getElementById('patternRequirements');
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <p class="mb-2"><strong>Pattern Type:</strong> ${pattern.type.replace(/_/g, ' ').toUpperCase()}</p>
+                <p class="mb-2"><strong>Credit Hours:</strong> ${creditHours}</p>
+                <p class="mb-0"><strong>Total Duration:</strong> ${pattern.total_hours}h/week</p>
+            </div>
+            <div class="col-md-6">
+                <strong>Required Sections:</strong>
+                <div class="mt-2">
+    `;
+    
+    if (pattern.lecture_hours > 0) {
+        html += `<div class="badge bg-primary me-2 mb-2">🎓 Lecture: <strong>${pattern.lecture_hours}h</strong></div>`;
+    }
+    if (pattern.lab_hours > 0) {
+        html += `<div class="badge bg-success me-2 mb-2">🧪 Lab: <strong>${pattern.lab_hours}h</strong></div>`;
+    }
+    if (pattern.tutorial_hours > 0) {
+        html += `<div class="badge bg-info me-2 mb-2">📚 Tutorial: <strong>${pattern.tutorial_hours}h</strong></div>`;
+    }
+    
+    html += `
                 </div>
             </div>
-        `;
-        
-        requirements.innerHTML = html;
-        alert.style.display = 'block';
+        </div>
+        <div class="alert alert-warning mt-3 mb-0">
+            <i class="bi bi-exclamation-triangle"></i> 
+            <strong>Important:</strong> Each section MUST have exactly these hours:
+            <ul class="mb-0 mt-2">
+                ${pattern.lecture_hours > 0 ? `<li>Lectures: Exactly ${pattern.lecture_hours} hours total</li>` : ''}
+                ${pattern.lab_hours > 0 ? `<li>Labs: Exactly ${pattern.lab_hours} hours total</li>` : ''}
+                ${pattern.tutorial_hours > 0 ? `<li>Tutorials: Exactly ${pattern.tutorial_hours} hours total</li>` : ''}
+            </ul>
+        </div>
+    `;
+    
+    requirements.innerHTML = html;
+    alert.style.display = 'block';
+}
+
+
+
+    // ==========================================
+// PATTERN VALIDATION HELPERS
+// ==========================================
+
+isSlotTypeAllowed(slotType, pattern) {
+    const normalizedType = slotType.toLowerCase();
+    
+    switch(pattern.type) {
+        case 'lecture_only':
+            return normalizedType === 'lecture';
+        case 'lecture_tutorial':
+            return normalizedType === 'lecture' || normalizedType === 'tutorial';
+        case 'lecture_lab':
+            return normalizedType === 'lecture' || normalizedType.includes('lab');
+        case 'lecture_lab_tutorial':
+            return ['lecture', 'tutorial'].includes(normalizedType) || normalizedType.includes('lab');
+        case 'lab_only':
+            return normalizedType.includes('lab');
+        case 'custom':
+            return true;
+        default:
+            return true;
     }
+}
+
+getAllowedTypes(pattern) {
+    switch(pattern.type) {
+        case 'lecture_only':
+            return ['Lecture'];
+        case 'lecture_tutorial':
+            return ['Lecture', 'Tutorial'];
+        case 'lecture_lab':
+            return ['Lecture', 'Lab', 'Lab A', 'Lab B'];
+        case 'lecture_lab_tutorial':
+            return ['Lecture', 'Lab', 'Lab A', 'Lab B', 'Tutorial'];
+        case 'lab_only':
+            return ['Lab', 'Lab A', 'Lab B'];
+        case 'custom':
+            return ['Lecture', 'Lab', 'Lab A', 'Lab B', 'Tutorial'];
+        default:
+            return ['Lecture', 'Lab', 'Tutorial'];
+    }
+}
+
+calculateTypeHours(sectionId, slotType) {
+    const slots = this.timeSlots[sectionId] || [];
+    const normalizedType = slotType.toLowerCase();
+    
+    return slots
+        .filter(slot => {
+            const slotNormalized = slot.type.toLowerCase();
+            if (normalizedType.includes('lab')) {
+                return slotNormalized.includes('lab');
+            }
+            return slotNormalized === normalizedType;
+        })
+        .reduce((sum, slot) => sum + slot.duration, 0);
+}
+
+getExpectedHours(slotType, pattern) {
+    const normalizedType = slotType.toLowerCase();
+    
+    if (normalizedType === 'lecture') {
+        return pattern.lecture_hours;
+    } else if (normalizedType.includes('lab')) {
+        return pattern.lab_hours;
+    } else if (normalizedType === 'tutorial') {
+        return pattern.tutorial_hours;
+    }
+    
+    return 0;
+}
+
 
     // ==========================================
     // LECTURE SECTIONS LOADING
@@ -164,18 +249,10 @@ class SectionManager {
                 </button>
             </div>
             <div class="card-body">
-                <!-- Section Type Selection -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold"><i class="bi bi-tag"></i> Section Type *</label>
-                    <select class="form-control" id="sectionType_${formId}" onchange="window.sectionManager.onSectionTypeChange(${formId})" required>
-                        <option value="">Select Type</option>
-                        <option value="lecture">Lecture</option>
-                        <option value="lab">Lab</option>
-                        <option value="lab a">Lab A</option>
-                        <option value="lab b">Lab B</option>
-                        <option value="tutorial">Tutorial</option>
-                    </select>
-                </div>
+                <div class="alert alert-info mb-3">
+    <i class="bi bi-info-circle"></i> <strong>Unified Section:</strong> 
+    Add all time slots (lectures, labs, tutorials) to this single section.
+</div>
                 
                 <!-- Parent Lecture Selection (hidden by default) -->
                 <div id="lectureSelectContainer_${formId}" style="display: none;">
@@ -195,9 +272,19 @@ class SectionManager {
                 
                 <div class="mb-3">
                     <label class="form-label fw-bold"><i class="bi bi-clock"></i> Time Slots</label>
-                    <div class="row mb-2">
-                        <div class="col-md-3">
-                            <select class="form-control" id="dayOfWeek_${formId}">
+                   <div class="row mb-2">
+    <div class="col-md-2">
+        <select class="form-control" id="slotType_${formId}">
+            <option value="">Type</option>
+            <option value="lecture">Lecture</option>
+            <option value="lab">Lab</option>
+            <option value="lab a">Lab A</option>
+            <option value="lab b">Lab B</option>
+            <option value="tutorial">Tutorial</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-control" id="dayOfWeek_${formId}">
                                 <option value="">Select Day</option>
                                 <option value="Sunday">Sunday</option>
                                 <option value="Monday">Monday</option>
@@ -286,383 +373,189 @@ class SectionManager {
     // ==========================================
     // SECTION TYPE CHANGE
     // ==========================================
-    onSectionTypeChange(sectionId) {
-        const sectionType = document.getElementById(`sectionType_${sectionId}`).value;
-        const lectureSelectContainer = document.getElementById(`lectureSelectContainer_${sectionId}`);
-        const followsLectureSelect = document.getElementById(`followsLecture_${sectionId}`);
-        const lectureLabel = document.getElementById(`lectureLabel_${sectionId}`);
-        const lectureHelp = document.getElementById(`lectureHelp_${sectionId}`);
-        
-        // Only tutorials REQUIRE a lecture link, labs are optional
-        if (sectionType === 'tutorial') {
-            lectureSelectContainer.style.display = 'block';
-            followsLectureSelect.required = true;
-            lectureLabel.innerHTML = '<i class="bi bi-link-45deg"></i> Parent Lecture Section <span class="text-danger">*</span>';
-            lectureHelp.textContent = 'Tutorials MUST be linked to a lecture section';
-            this.populateLectureSections(sectionId);
-        } else if (sectionType === 'lab' || sectionType === 'lab a' || sectionType === 'lab b') {
-            lectureSelectContainer.style.display = 'block';
-            followsLectureSelect.required = false; // Labs are optional!
-            lectureLabel.innerHTML = '<i class="bi bi-link-45deg"></i> Parent Lecture Section <span class="text-muted">(Optional)</span>';
-            lectureHelp.textContent = 'Labs can optionally be linked to a lecture section';
-            this.populateLectureSections(sectionId);
-        } else {
-            lectureSelectContainer.style.display = 'none';
-            followsLectureSelect.required = false;
-        }
-
-        const validationNote = document.getElementById(`validationNote_${sectionId}`);
-        if (!validationNote) {
-            const noteDiv = document.createElement('div');
-            noteDiv.id = `validationNote_${sectionId}`;
-            noteDiv.className = 'alert alert-sm alert-info py-2 mb-2';
-            
-            // Insert after section type select
-            const sectionTypeSelect = document.getElementById(`sectionType_${sectionId}`);
-            sectionTypeSelect.parentNode.insertBefore(noteDiv, sectionTypeSelect.nextSibling);
-        }
-        
-        this.updateSectionTypeValidationNote(sectionId);
-    }
+   
 
     // ==========================================
     // PATTERN VALIDATION NOTE
     // ==========================================
-    updateSectionTypeValidationNote(sectionId) {
-        const noteDiv = document.getElementById(`validationNote_${sectionId}`);
-        const sectionType = document.getElementById(`sectionType_${sectionId}`).value;
-        const courseCode = document.getElementById('sectionCourseCode').value;
-        
-        if (!sectionType || !courseCode) return;
-        
-        fetch(`${window.API_URL}/course-details/${courseCode}`)
-            .then(res => res.json())
-            .then(courseData => {
-                if (!courseData.pattern) return;
-                
-                const pattern = courseData.pattern;
-                let expectedHours = 0;
-                let typeColor = 'info';
-                
-                if (sectionType === 'lecture') {
-                    expectedHours = pattern.lecture_hours;
-                    typeColor = 'primary';
-                } else if (sectionType.includes('lab')) {
-                    expectedHours = pattern.lab_hours;
-                    typeColor = 'success';
-                } else if (sectionType === 'tutorial') {
-                    expectedHours = pattern.tutorial_hours;
-                    typeColor = 'warning';
-                }
-                
-                if (expectedHours > 0) {
-                    noteDiv.className = `alert alert-sm alert-${typeColor} py-2 mb-2`;
-                    noteDiv.innerHTML = `
-                        <i class="bi bi-info-circle"></i> 
-                        This ${sectionType} section must have exactly <strong>${expectedHours} hours</strong> per week
-                    `;
-                }
-            })
-            .catch(error => console.error('Error fetching pattern:', error));
-    }
+    
 
     // ==========================================
     // POPULATE LECTURE SECTIONS
     // ==========================================
-    async populateLectureSections(sectionId) {
-        const courseCode = document.getElementById('sectionCourseCode').value;
-        if (!courseCode) {
-            alert('Please select a course first');
-            return;
-        }
-        
-        const lectureSelect = document.getElementById(`followsLecture_${sectionId}`);
-        lectureSelect.innerHTML = '<option value="">Loading...</option>';
-        
-        console.log(`🔍 Loading lecture sections for course: ${courseCode}`);
-        const lectureSections = await this.loadLectureSections(courseCode);
-        console.log(`📚 Found ${lectureSections.length} lecture sections:`, lectureSections);
-        
-        // Add "None (Optional)" option for labs
-        const sectionType = document.getElementById(`sectionType_${sectionId}`).value;
-        const isLab = sectionType === 'lab' || sectionType === 'lab a' || sectionType === 'lab b';
-        
-        if (isLab) {
-            lectureSelect.innerHTML = '<option value="">None (Optional)</option>';
-        } else {
-            lectureSelect.innerHTML = '<option value="">Select Lecture Section (Required)</option>';
-        }
+   
 
-        // Add pending sections first
-        const pendingSections = document.querySelectorAll('.section-form-card');
-        let pendingCount = 0;
-        
-        pendingSections.forEach(form => {
-            const formSectionId = parseInt(form.id.split('_')[1]);
-            const formSectionType = document.getElementById(`sectionType_${formSectionId}`).value;
-            
-            if (formSectionType === 'lecture' && formSectionId !== sectionId) {
-                const option = document.createElement('option');
-                option.value = `pending_${formSectionId}`;
-                option.textContent = `[PENDING] Section #${formSectionId} - New Lecture`;
-                option.className = 'text-muted';
-                lectureSelect.appendChild(option);
-                pendingCount++;
-            }
-        });
-        
-        if (pendingCount > 0) {
-            const separator = document.createElement('option');
-            separator.disabled = true;
-            separator.innerHTML = '─────── Existing Sections ───────';
-            lectureSelect.appendChild(separator);
-        }
-        
-        // Then add existing lecture sections from database
-        if (lectureSections.length === 0) {
-            if (!isLab && pendingCount === 0) {
-                alert(`⚠️ No lecture sections found for ${courseCode}. Please create a lecture section first.`);
-            }
-            return;
-        }
-
-        // ADD THE LECTURE SECTIONS TO THE DROPDOWN!
-        lectureSections.forEach(section => {
-            const option = document.createElement('option');
-            option.value = section.sec_num;
-            
-            // Calculate lecture hours from time_slots
-            let lectureHours = 0;
-            if (section.time_slots && Array.isArray(section.time_slots)) {
-                section.time_slots.forEach(slot => {
-                    // Parse time slot like "Sunday 8:00-9:00"
-                    const timeMatch = slot.match(/(\d+):(\d+)-(\d+):(\d+)/);
-                    if (timeMatch) {
-                        const startHour = parseInt(timeMatch[1]);
-                        const endHour = parseInt(timeMatch[3]);
-                        lectureHours += (endHour - startHour);
-                    }
-                });
-            }
-            
-            console.log(`✅ Section ${section.sec_num}: ${lectureHours} hours from slots:`, section.time_slots);
-            
-            // Store lecture hours in data attribute
-            option.setAttribute('data-lecture-hours', lectureHours);
-            
-            const timeSlots = section.time_slots.join(', ');
-            const levelText = section.academic_level ? ` (Level ${section.academic_level})` : '';
-            option.textContent = `Section ${section.sec_num}${levelText} - ${timeSlots} (${lectureHours}h)`;
-            lectureSelect.appendChild(option);
-        });
-        
-        // CRITICAL: Add event listener for lecture selection change
-        const newSelect = document.getElementById(`followsLecture_${sectionId}`);
-        newSelect.addEventListener('change', () => {
-            console.log('🔔 Lecture selection changed!');
-            this.updateCreditHoursFromLecture(sectionId);
-        });
-    }
-
-    searchLectureSections(sectionId) {
-        const searchTerm = document.getElementById(`lectureSearch_${sectionId}`).value.toLowerCase();
-        const select = document.getElementById(`followsLecture_${sectionId}`);
-        const options = select.getElementsByTagName('option');
-        
-        for (let i = 1; i < options.length; i++) {
-            const optionText = options[i].textContent.toLowerCase();
-            if (optionText.includes(searchTerm)) {
-                options[i].style.display = '';
-            } else {
-                options[i].style.display = 'none';
-            }
-        }
-    }
+    
 
     // ==========================================
     // ADD TIME SLOT WITH OVERLAP DETECTION
     // ==========================================
     async addTimeSlot(sectionId) {
-        const day = document.getElementById(`dayOfWeek_${sectionId}`).value;
-        const startTime = document.getElementById(`startTime_${sectionId}`).value;
-        const endTime = document.getElementById(`endTime_${sectionId}`).value;
-        const sectionType = document.getElementById(`sectionType_${sectionId}`).value;
-        
-        if (!day || !startTime || !endTime) {
-            alert('Please select day, start time, and end time');
-            return;
-        }
-        
-        if (!sectionType) {
-            alert('Please select section type first');
-            return;
-        }
-        
-        const startHour = parseFloat(startTime.split(':')[0]);
-        const endHour = parseFloat(endTime.split(':')[0]);
-        
-        if (startHour >= endHour) {
-            alert('End time must be after start time');
-            return;
-        }
-        
-        const duration = endHour - startHour;
-        
-        if (duration <= 0) {
-            alert('Invalid time duration');
-            return;
-        }
-        
-        // Check for overlapping time slots on the same day within this section
-        const existingSlots = this.timeSlots[sectionId].filter(slot => slot.day === day);
-        const hasOverlap = existingSlots.some(slot => {
-            const existingStart = parseFloat(slot.start_time.split(':')[0]);
-            const existingEnd = parseFloat(slot.end_time.split(':')[0]);
-            
-            return (startHour < existingEnd && endHour > existingStart);
-        });
-        
-        if (hasOverlap) {
-            alert('This time slot overlaps with an existing slot on the same day');
-            return;
-        }
-        
-        // Check if this is a duplicate
-        const duplicate = existingSlots.find(slot => 
-            slot.start_time === startTime && slot.end_time === endTime
-        );
-        
-        if (duplicate) {
-            alert('This exact time slot has already been added');
-            return;
-        }
-        
-        // Check if this tutorial/lab overlaps with parent lecture
-        if (sectionType === 'tutorial' || sectionType.includes('lab')) {
-            const followsLectureSelect = document.getElementById(`followsLecture_${sectionId}`);
-            const parentLectureValue = followsLectureSelect.value;
-            
-            if (parentLectureValue) {
-                let lectureTimeSlots = [];
-                
-                // Check if it's a pending section
-                if (parentLectureValue.startsWith('pending_')) {
-                    const pendingSectionId = parseInt(parentLectureValue.split('_')[1]);
-                    
-                    // Get time slots from the pending section
-                    if (this.timeSlots[pendingSectionId]) {
-                        lectureTimeSlots = this.timeSlots[pendingSectionId];
-                        console.log('📋 Checking against PENDING lecture slots:', lectureTimeSlots);
-                    }
-                } else {
-                    // This is an existing lecture section from database
-                    const selectedOption = followsLectureSelect.options[followsLectureSelect.selectedIndex];
-                    const optionText = selectedOption.textContent;
-                    
-                    console.log('📋 Parsing lecture time slots from:', optionText);
-                    
-                    // Parse time slots from option text
-                    // Format: "Section 72681 - Sunday 10:00-12:00, Tuesday 10:00-12:00 (6h)"
-                    const timeSlotPattern = /(\w+)\s+(\d+):(\d+)-(\d+):(\d+)/g;
-                    let match;
-                    
-                    while ((match = timeSlotPattern.exec(optionText)) !== null) {
-                        lectureTimeSlots.push({
-                            day: match[1],
-                            start_time: `${match[2]}:${match[3]}`,
-                            end_time: `${match[4]}:${match[5]}`,
-                            duration: parseInt(match[4]) - parseInt(match[2])
-                        });
-                    }
-                    
-                    console.log('📋 Parsed lecture slots:', lectureTimeSlots);
-                }
-                
-                // Now check for overlaps
-                for (const lectureSlot of lectureTimeSlots) {
-                    if (lectureSlot.day === day) {
-                        const lectureStartHour = parseFloat(lectureSlot.start_time.split(':')[0]);
-                        const lectureEndHour = parseFloat(lectureSlot.end_time.split(':')[0]);
-                        
-                        console.log(`🔍 Checking overlap: Tutorial ${day} ${startHour}:00-${endHour}:00 vs Lecture ${lectureSlot.day} ${lectureStartHour}:00-${lectureEndHour}:00`);
-                        
-                        // Check if times overlap
-                        if (startHour < lectureEndHour && endHour > lectureStartHour) {
-                            alert(`❌ This ${sectionType} time slot overlaps with the parent lecture!\n\nLecture: ${day} ${lectureStartHour}:00-${lectureEndHour}:00\nYour slot: ${day} ${startHour}:00-${endHour}:00\n\nPlease choose a different time.`);
-                            return;
-                        }
-                    }
-                }
-                
-                console.log('✅ No overlap detected with lecture');
-            }
-        }
+    const slotType = document.getElementById(`slotType_${sectionId}`).value;
+    const day = document.getElementById(`dayOfWeek_${sectionId}`).value;
+    const startTime = document.getElementById(`startTime_${sectionId}`).value;
+    const endTime = document.getElementById(`endTime_${sectionId}`).value;
 
-        // Get credit hours for validation
-        const creditHours = this.creditHoursMap[sectionId] || 0;
-        const currentTotal = this.timeSlots[sectionId].reduce((sum, slot) => sum + slot.duration, 0);
-        const newTotal = currentTotal + duration;
+    if (!slotType || !day || !startTime || !endTime) {
+        alert('Please fill all fields: Type, Day, Start Time, and End Time');
+        return;
+    }
+
+    // ✅ STEP 1: VALIDATE AGAINST COURSE PATTERN FIRST
+    const courseCode = document.getElementById('sectionCourseCode').value;
+    
+    try {
+        const courseResponse = await fetch(`${window.API_URL}/course-details/${courseCode}`);
+        const courseData = await courseResponse.json();
         
-        // Warn if exceeding credit hours significantly
-        if (creditHours > 0 && newTotal > creditHours + 2) {
-            if (!confirm(`Warning: This will make total hours ${newTotal}, but course is only ${creditHours} credit hours.\n\nDo you want to continue?`)) {
+        if (courseData.pattern) {
+            const pattern = courseData.pattern;
+            
+            // Check if this slot type is allowed by the pattern
+            const isTypeAllowed = this.isSlotTypeAllowed(slotType, pattern);
+            if (!isTypeAllowed) {
+                const allowedTypes = this.getAllowedTypes(pattern);
+                alert(`❌ This course pattern (${pattern.type.replace(/_/g, ' ')}) does not allow "${slotType}" sections.\n\nAllowed types: ${allowedTypes.join(', ')}`);
+                return;
+            }
+            
+            // Calculate duration
+            const startHour = parseFloat(startTime.split(':')[0]);
+            const endHour = parseFloat(endTime.split(':')[0]);
+            const duration = endHour - startHour;
+            
+            // Check if adding this slot would exceed the type-specific limit
+            const currentTypeHours = this.calculateTypeHours(sectionId, slotType);
+            const expectedHours = this.getExpectedHours(slotType, pattern);
+            
+            if (expectedHours > 0 && (currentTypeHours + duration) > expectedHours) {
+                alert(`❌ Cannot add ${duration}h ${slotType} slot!\n\nCurrent ${slotType} hours: ${currentTypeHours}h\nMaximum allowed: ${expectedHours}h\nYou can only add ${expectedHours - currentTypeHours}h more for ${slotType}.`);
                 return;
             }
         }
-
-        // PATTERN VALIDATION: Check if total hours match expected for this section type
-        const courseCode = document.getElementById('sectionCourseCode').value;
+    } catch (error) {
+        console.error('Error validating pattern:', error);
+        alert('Error validating course pattern. Please try again.');
+        return;
+    }
+    
+    // ✅ STEP 2: TIME VALIDATION
+    const startHour = parseFloat(startTime.split(':')[0]);
+    const endHour = parseFloat(endTime.split(':')[0]);
+    
+    if (startHour >= endHour) {
+        alert('End time must be after start time');
+        return;
+    }
+    
+    const duration = endHour - startHour;
+    
+    // ✅ STEP 3: CHECK FOR OVERLAPS WITHIN THIS SECTION
+    const existingSlots = this.timeSlots[sectionId].filter(slot => slot.day === day);
+    const hasOverlap = existingSlots.some(slot => {
+        const existingStart = parseFloat(slot.start_time.split(':')[0]);
+        const existingEnd = parseFloat(slot.end_time.split(':')[0]);
         
-        try {
-            // Fetch course pattern
-            const courseResponse = await fetch(`${window.API_URL}/course-details/${courseCode}`);
-            const courseData = await courseResponse.json();
+        return (startHour < existingEnd && endHour > existingStart);
+    });
+    
+    if (hasOverlap) {
+        alert('This time slot overlaps with an existing slot on the same day');
+        return;
+    }
+    
+    // ✅ STEP 4: CHECK FOR DUPLICATES
+    const duplicate = existingSlots.find(slot => 
+        slot.start_time === startTime && slot.end_time === endTime
+    );
+    
+    if (duplicate) {
+        alert('This exact time slot has already been added');
+        return;
+    }
+    
+    // ✅ STEP 5: CHECK IF TUTORIAL/LAB OVERLAPS WITH PARENT LECTURE (if applicable)
+    if (slotType === 'tutorial' || slotType.includes('lab')) {
+        const followsLectureSelect = document.getElementById(`followsLecture_${sectionId}`);
+        
+        if (followsLectureSelect && followsLectureSelect.value) {
+            const parentLectureValue = followsLectureSelect.value;
+            let lectureTimeSlots = [];
             
-            if (courseData.pattern) {
-                const pattern = courseData.pattern;
-                let expectedHours = 0;
+            // Check if it's a pending section
+            if (parentLectureValue.startsWith('pending_')) {
+                const pendingSectionId = parseInt(parentLectureValue.split('_')[1]);
                 
-                if (sectionType === 'lecture') {
-                    expectedHours = pattern.lecture_hours;
-                } else if (sectionType.includes('lab')) {
-                    expectedHours = pattern.lab_hours;
-                } else if (sectionType === 'tutorial') {
-                    expectedHours = pattern.tutorial_hours;
+                // Get time slots from the pending section
+                if (this.timeSlots[pendingSectionId]) {
+                    lectureTimeSlots = this.timeSlots[pendingSectionId];
+                    console.log('📋 Checking against PENDING lecture slots:', lectureTimeSlots);
+                }
+            } else {
+                // This is an existing lecture section from database
+                const selectedOption = followsLectureSelect.options[followsLectureSelect.selectedIndex];
+                const optionText = selectedOption.textContent;
+                
+                console.log('📋 Parsing lecture time slots from:', optionText);
+                
+                // Parse time slots from option text
+                // Format: "Section 72681 - Sunday 10:00-12:00, Tuesday 10:00-12:00 (6h)"
+                const timeSlotPattern = /(\w+)\s+(\d+):(\d+)-(\d+):(\d+)/g;
+                let match;
+                
+                while ((match = timeSlotPattern.exec(optionText)) !== null) {
+                    lectureTimeSlots.push({
+                        day: match[1],
+                        start_time: `${match[2]}:${match[3]}`,
+                        end_time: `${match[4]}:${match[5]}`,
+                        duration: parseInt(match[4]) - parseInt(match[2])
+                    });
                 }
                 
-                // Calculate current total for this section type
-                const currentTotal = (this.timeSlots[sectionId] || []).reduce((sum, slot) => sum + slot.duration, 0);
-                const newTotal = currentTotal + duration;
-                
-                // CRITICAL: Check if adding this slot would exceed expected hours
-                if (expectedHours > 0 && newTotal > expectedHours) {
-                    alert(`⚠️ This ${sectionType} section can only have ${expectedHours} hours total.\n\nCurrent: ${currentTotal}h\nNew slot: +${duration}h\nTotal would be: ${newTotal}h\n\nPlease adjust your time slots.`);
-                    return;
+                console.log('📋 Parsed lecture slots:', lectureTimeSlots);
+            }
+            
+            // Now check for overlaps
+            for (const lectureSlot of lectureTimeSlots) {
+                if (lectureSlot.day === day) {
+                    const lectureStartHour = parseFloat(lectureSlot.start_time.split(':')[0]);
+                    const lectureEndHour = parseFloat(lectureSlot.end_time.split(':')[0]);
+                    
+                    console.log(`🔍 Checking overlap: ${slotType} ${day} ${startHour}:00-${endHour}:00 vs Lecture ${lectureSlot.day} ${lectureStartHour}:00-${lectureEndHour}:00`);
+                    
+                    // Check if times overlap
+                    if (startHour < lectureEndHour && endHour > lectureStartHour) {
+                        alert(`❌ This ${slotType} time slot overlaps with the parent lecture!\n\nLecture: ${day} ${lectureStartHour}:00-${lectureEndHour}:00\nYour slot: ${day} ${startHour}:00-${endHour}:00\n\nPlease choose a different time.`);
+                        return;
+                    }
                 }
             }
-        } catch (error) {
-            console.error('Error validating pattern:', error);
+            
+            console.log('✅ No overlap detected with lecture');
         }
-        
-        // Add the time slot
-        const newSlot = {
-            day: day,
-            start_time: startTime,
-            end_time: endTime,
-            duration: duration,
-            type: sectionType
-        };
-        
-        this.timeSlots[sectionId].push(newSlot);
-        window.sectionTimeSlotsMap[sectionId].push(newSlot); // ✅ SYNC GLOBAL
-        
-        this.updateTimeSlotsDisplay(sectionId);
-        this.updateCreditHoursStatus(sectionId);
-        
-        // Clear the form but keep day selected for convenience
-        document.getElementById(`startTime_${sectionId}`).value = '';
-        document.getElementById(`endTime_${sectionId}`).value = '';
     }
+
+    // ✅ STEP 6: CREATE AND ADD THE SLOT
+    const newSlot = {
+        day: day,
+        start_time: startTime,
+        end_time: endTime,
+        duration: duration,
+        type: slotType
+    };
+    
+    this.timeSlots[sectionId].push(newSlot);
+    window.sectionTimeSlotsMap[sectionId].push(newSlot);
+    
+    this.updateTimeSlotsDisplay(sectionId);
+    this.updateCreditHoursStatus(sectionId);
+    
+    // Clear form
+    document.getElementById(`slotType_${sectionId}`).value = '';
+    document.getElementById(`dayOfWeek_${sectionId}`).value = '';
+    document.getElementById(`startTime_${sectionId}`).value = '';
+    document.getElementById(`endTime_${sectionId}`).value = '';
+}
 
     updateTimeSlotsDisplay(sectionId) {
         const container = document.getElementById(`timeSlotsContainer_${sectionId}`);
@@ -710,48 +603,100 @@ class SectionManager {
     // CREDIT HOURS STATUS UPDATE
     // ==========================================
     updateCreditHoursStatus(sectionId) {
-        // Check if a lecture is selected
-        const lectureSelect = document.getElementById(`followsLecture_${sectionId}`);
-        if (lectureSelect && lectureSelect.value) {
-            // Use the lecture-aware calculation
-            this.updateCreditHoursFromLecture(sectionId);
-            return;
-        }
-        
-        // Original logic for sections without linked lectures
-        const creditHours = this.creditHoursMap[sectionId] || 0;
-        const slots = this.timeSlots[sectionId] || [];
-        const totalHours = slots.reduce((sum, slot) => sum + slot.duration, 0);
-        
-        const statusElement = document.getElementById(`creditHoursStatus_${sectionId}`);
-        const warningElement = document.getElementById(`creditHoursWarning_${sectionId}`);
-        
-        if (statusElement) {
-            statusElement.textContent = `${totalHours}/${creditHours}`;
-            
-            // Add color coding
-            if (creditHours > 0) {
-                if (totalHours === creditHours) {
-                    statusElement.className = 'text-success fw-bold';
-                    warningElement.innerHTML = '<i class="bi bi-check-circle"></i> Perfect match!';
-                    warningElement.className = 'text-success';
-                } else if (totalHours < creditHours) {
-                    statusElement.className = 'text-warning fw-bold';
-                    const remaining = creditHours - totalHours;
-                    warningElement.innerHTML = `<i class="bi bi-exclamation-triangle"></i> Need ${remaining} more hour(s)`;
-                    warningElement.className = 'text-warning';
-                } else {
-                    statusElement.className = 'text-danger fw-bold';
-                    const excess = totalHours - creditHours;
-                    warningElement.innerHTML = `<i class="bi bi-x-circle"></i> ${excess} hour(s) over limit`;
-                    warningElement.className = 'text-danger';
-                }
-            } else {
-                statusElement.className = 'text-muted';
-                warningElement.innerHTML = '';
+    const statusElement = document.getElementById(`creditHoursStatus_${sectionId}`);
+    const warningElement = document.getElementById(`creditHoursWarning_${sectionId}`);
+    
+    if (!statusElement) return;
+    
+    const courseCode = document.getElementById('sectionCourseCode').value;
+    
+    fetch(`${window.API_URL}/course-details/${courseCode}`)
+        .then(res => res.json())
+        .then(courseData => {
+            if (!courseData.pattern) {
+                // No pattern, use simple display
+                const creditHours = this.creditHoursMap[sectionId] || 0;
+                const slots = this.timeSlots[sectionId] || [];
+                const totalHours = slots.reduce((sum, slot) => sum + slot.duration, 0);
+                
+                statusElement.textContent = `${totalHours}/${creditHours}`;
+                this.updateStatusColor(statusElement, warningElement, totalHours, creditHours);
+                return;
             }
+            
+            const pattern = courseData.pattern;
+            
+            // Calculate hours by type
+            const lectureHours = this.calculateTypeHours(sectionId, 'lecture');
+            const labHours = this.calculateTypeHours(sectionId, 'lab');
+            const tutorialHours = this.calculateTypeHours(sectionId, 'tutorial');
+            const totalHours = lectureHours + labHours + tutorialHours;
+            
+            // Build status text
+            let statusParts = [];
+            if (pattern.lecture_hours > 0) {
+                statusParts.push(`L:${lectureHours}/${pattern.lecture_hours}`);
+            }
+            if (pattern.lab_hours > 0) {
+                statusParts.push(`Lab:${labHours}/${pattern.lab_hours}`);
+            }
+            if (pattern.tutorial_hours > 0) {
+                statusParts.push(`T:${tutorialHours}/${pattern.tutorial_hours}`);
+            }
+            
+            statusElement.textContent = statusParts.join(' | ') + ` (${totalHours}h)`;
+            
+            // Check if all types match
+            const lectureMatch = pattern.lecture_hours === 0 || lectureHours === pattern.lecture_hours;
+            const labMatch = pattern.lab_hours === 0 || labHours === pattern.lab_hours;
+            const tutorialMatch = pattern.tutorial_hours === 0 || tutorialHours === pattern.tutorial_hours;
+            
+            if (lectureMatch && labMatch && tutorialMatch) {
+                statusElement.className = 'text-success fw-bold';
+                warningElement.innerHTML = '<i class="bi bi-check-circle"></i> Perfect!';
+                warningElement.className = 'text-success';
+            } else {
+                statusElement.className = 'text-warning fw-bold';
+                let warnings = [];
+                
+                if (!lectureMatch && pattern.lecture_hours > 0) {
+                    const diff = pattern.lecture_hours - lectureHours;
+                    warnings.push(`${diff > 0 ? 'Need' : 'Over'} ${Math.abs(diff)}h lecture`);
+                }
+                if (!labMatch && pattern.lab_hours > 0) {
+                    const diff = pattern.lab_hours - labHours;
+                    warnings.push(`${diff > 0 ? 'Need' : 'Over'} ${Math.abs(diff)}h lab`);
+                }
+                if (!tutorialMatch && pattern.tutorial_hours > 0) {
+                    const diff = pattern.tutorial_hours - tutorialHours;
+                    warnings.push(`${diff > 0 ? 'Need' : 'Over'} ${Math.abs(diff)}h tutorial`);
+                }
+                
+                warningElement.innerHTML = `<i class="bi bi-exclamation-triangle"></i> ${warnings.join(', ')}`;
+                warningElement.className = 'text-warning';
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+updateStatusColor(statusElement, warningElement, totalHours, creditHours) {
+    if (creditHours > 0) {
+        if (totalHours === creditHours) {
+            statusElement.className = 'text-success fw-bold';
+            warningElement.innerHTML = '<i class="bi bi-check-circle"></i> Perfect match!';
+            warningElement.className = 'text-success';
+        } else if (totalHours < creditHours) {
+            statusElement.className = 'text-warning fw-bold';
+            warningElement.innerHTML = `<i class="bi bi-exclamation-triangle"></i> Need ${creditHours - totalHours} more hour(s)`;
+            warningElement.className = 'text-warning';
+        } else {
+            statusElement.className = 'text-danger fw-bold';
+            warningElement.innerHTML = `<i class="bi bi-x-circle"></i> ${totalHours - creditHours} hour(s) over`;
+            warningElement.className = 'text-danger';
         }
     }
+}
+
 
     updateCreditHoursFromLecture(sectionId) {
         console.log('🔍 updateCreditHoursFromLecture called for section:', sectionId);
@@ -885,56 +830,39 @@ class SectionManager {
         const errors = [];
         const warnings = [];
         
-        sectionForms.forEach(form => {
-            const sectionId = parseInt(form.id.split('_')[1]);
-            const slots = this.timeSlots[sectionId];
-            const sectionType = document.getElementById(`sectionType_${sectionId}`).value;
+sectionForms.forEach(form => {
+    const sectionId = parseInt(form.id.split('_')[1]);
+    const slots = this.timeSlots[sectionId];
+    
+    if (!slots || slots.length === 0) {
+        errors.push(`Section #${sectionId}: No time slots added`);
+        return;
+    }
+    
+    // Calculate total hours for this section
+    const totalHours = slots.reduce((sum, slot) => sum + slot.duration, 0);
+    
+    // Validate against credit hours
+    if (courseCreditHours > 0) {
+        if (totalHours < courseCreditHours) {
+            warnings.push(`Section #${sectionId}: Only ${totalHours}h (needs ${courseCreditHours}h)`);
+        } else if (totalHours > courseCreditHours + 2) {
+            warnings.push(`Section #${sectionId}: ${totalHours}h (significantly exceeds ${courseCreditHours}h)`);
+        }
+    }
+
             
-            if (!sectionType) {
-                errors.push(`Section #${sectionId}: Section type not selected`);
-                return;
-            }
-            
-            if (!slots || slots.length === 0) {
-                errors.push(`Section #${sectionId}: No time slots added`);
-                return;
-            }
-            
-            let followsLecture = null;
-            if (sectionType === 'lab' || sectionType === 'lab a' || sectionType === 'lab b' || sectionType === 'tutorial') {
-                followsLecture = document.getElementById(`followsLecture_${sectionId}`).value;
-                
-                // Only tutorials REQUIRE a parent lecture
-                if (sectionType === 'tutorial' && !followsLecture) {
-                    errors.push(`Section #${sectionId}: Tutorials must have a parent lecture section`);
-                    return;
-                }
-                
-                // Labs are optional, so just set to null if not selected
-                if (!followsLecture) {
-                    followsLecture = null;
-                }
-            }
-            
-            // Calculate total hours for this section
-            const totalHours = slots.reduce((sum, slot) => sum + slot.duration, 0);
-            
-            // Validate against credit hours
-            if (courseCreditHours > 0) {
-                if (totalHours < courseCreditHours) {
-                    warnings.push(`Section #${sectionId}: Only ${totalHours}h (needs ${courseCreditHours}h)`);
-                } else if (totalHours > courseCreditHours + 2) {
-                    warnings.push(`Section #${sectionId}: ${totalHours}h (significantly exceeds ${courseCreditHours}h)`);
-                }
-            }
-            
-            sections.push({
-                section_id: sectionId,
-                time_slots: slots,
-                total_hours: totalHours,
-                type: sectionType,
-                follows_lecture: followsLecture
-            });
+            // Convert to unified format: "type: Day HH:MM-HH:MM"
+const timeSlotStrings = slots.map(slot => 
+    `${slot.type}: ${slot.day} ${slot.start_time}-${slot.end_time}`
+);
+
+sections.push({
+    section_id: sectionId,
+    time_Slot: timeSlotStrings,
+    time_slots_detail: slots
+});
+
         });
         
         if (errors.length > 0) {
@@ -945,12 +873,24 @@ class SectionManager {
         let confirmMsg = `Create ${sections.length} section(s) for ${courseCode} - ${courseName}?\n\n`;
         
         sections.forEach(s => {
-            const status = courseCreditHours > 0 ? 
-                (s.total_hours === courseCreditHours ? '✅' : 
-                 s.total_hours < courseCreditHours ? '⚠️' : '❌') : 'ℹ️';
-            const lectureInfo = s.follows_lecture ? ` → Lecture ${s.follows_lecture}` : '';
-            confirmMsg += `${status} Section #${s.section_id} (${s.type}): ${s.total_hours}h${lectureInfo}\n`;
-        });
+    const totalHours = s.time_slots_detail.reduce((sum, slot) => sum + slot.duration, 0);
+    const status = courseCreditHours > 0 ? 
+        (totalHours === courseCreditHours ? '✅' : 
+         totalHours < courseCreditHours ? '⚠️' : '❌') : 'ℹ️';
+    
+    // Count slot types
+    const lectureCount = s.time_slots_detail.filter(slot => slot.type === 'lecture').length;
+    const labCount = s.time_slots_detail.filter(slot => slot.type.includes('lab')).length;
+    const tutorialCount = s.time_slots_detail.filter(slot => slot.type === 'tutorial').length;
+    
+    let typeInfo = '';
+    if (lectureCount > 0) typeInfo += `${lectureCount}L `;
+    if (labCount > 0) typeInfo += `${labCount}Lab `;
+    if (tutorialCount > 0) typeInfo += `${tutorialCount}T`;
+    
+    confirmMsg += `${status} Section #${s.section_id} [${typeInfo.trim()}]: ${totalHours}h/${courseCreditHours}h\n`;
+});
+
         
         if (courseCreditHours > 0) {
             confirmMsg += `\nCourse Credit Hours: ${courseCreditHours}`;
@@ -970,30 +910,30 @@ class SectionManager {
         
         for (const section of sections) {
             try {
-                const response = await fetch(`${window.API_URL}/create-section`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        course_code: courseCode,
-                        classroom: null,
-                        max_number: null,
-                        time_slots: section.time_slots,
-                        academic_level: academicLevel ? parseInt(academicLevel) : null,
-                        type: section.type,
-                        follows_lecture: section.follows_lecture,
-                        section_number: null
-                    })
-                });
+                const response = await fetch(`${window.API_URL}/create-section-unified`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        course_code: courseCode,
+        classroom: null,
+        max_Number: null,
+        time_Slot: section.time_Slot,
+        time_slots_detail: section.time_slots_detail,
+        academic_level: academicLevel ? parseInt(academicLevel) : null,
+        created_by: 'manual_entry'
+    })
+});
                 
                 const data = await response.json();
                 
                 if (response.ok) {
                     successCount++;
-                    const status = courseCreditHours > 0 ? 
-                        (section.total_hours === courseCreditHours ? '✅' : 
-                         section.total_hours < courseCreditHours ? '⚠️' : '❌') : '✅';
-                    const lectureInfo = section.follows_lecture ? ` (linked to ${section.follows_lecture})` : '';
-                    results.push(`${status} Section ${data.section.sec_num} (${section.type}): ${section.total_hours}/${courseCreditHours}h${lectureInfo}`);
+                   const totalHours = section.time_slots_detail.reduce((sum, slot) => sum + slot.duration, 0);
+const status = courseCreditHours > 0 ? 
+    (totalHours === courseCreditHours ? '✅' : 
+     totalHours < courseCreditHours ? '⚠️' : '❌') : '✅';
+results.push(`${status} Section ${data.section.sec_num}: ${totalHours}h with ${section.time_Slot.length} slots`);
+
                 } else {
                     failCount++;
                     results.push(`❌ Section #${section.section_id} (${section.type}): ${data.error}`);

@@ -43,8 +43,27 @@ const createSection = async (req, res) => {
     }
 };
 
+const createSectionUnified = async (req, res) => {
+    try {
+        console.log('📦 Controller: Creating unified section');
+        const section = await sectionService.createSectionUnified(req.body);
+        res.status(201).json({
+            message: 'Unified section created successfully',
+            section: {
+                sec_num: section.sec_num,
+                course: section.course,
+                time_slots: section.time_Slot.length
+            }
+        });
+    } catch (error) {
+        console.error('❌ Controller error:', error);
+        res.status(400).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getLectureSections,
     getAllSections,
-    createSection
+    createSection,
+    createSectionUnified
 };

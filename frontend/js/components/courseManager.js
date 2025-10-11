@@ -135,6 +135,8 @@ class CourseManager {
                             <option value="Information Technology">Information Technology</option>
                             <option value="Information Systems">Information Systems</option>
                             <option value="Mathematics">Mathematics</option>
+                            <option value="Computer engineering">Computer engineering</option>
+                            
                             <option value="Islamic Culture">Islamic Culture</option>
                         </select>
                     </div>

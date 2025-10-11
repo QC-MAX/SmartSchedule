@@ -320,30 +320,33 @@ class FileUploadManager {
         let invalidRows = 0;
         
         // Track sections by course-section-type
-        const sectionBreakdown = {};
+     // Track sections by course-section (unified)
+const sectionBreakdown = {};
+
+rows.forEach((row, index) => {
+    const isValid = this.validateRowData(row);
+    const tr = document.createElement('tr');
+    
+    if (isValid) {
+        validRows++;
+        tr.className = 'table-success';
         
-        rows.forEach((row, index) => {
-            const isValid = this.validateRowData(row);
-            const tr = document.createElement('tr');
-            
-            if (isValid) {
-                validRows++;
-                tr.className = 'table-success';
-                
-                // Create unique key for each section type
-                const sectionKey = `${row.courseCode}-${row.section}-${row.type}`;
+        // ✅ Create unique key for unified section (no type)
+        const sectionKey = `${row.courseCode}-${row.section}`;
+
                 if (!sectionBreakdown[sectionKey]) {
-                    sectionBreakdown[sectionKey] = {
-                        courseCode: row.courseCode,
-                        sectionNumber: row.section,
-                        type: row.type,
-                        timeSlots: []
-                    };
-                }
-                sectionBreakdown[sectionKey].timeSlots.push({
-                    days: row.days,
-                    time: row.time
-                });
+    sectionBreakdown[sectionKey] = {
+        courseCode: row.courseCode,
+        sectionNumber: row.section,
+        timeSlots: []  // ✅ No type field
+    };
+}
+sectionBreakdown[sectionKey].timeSlots.push({
+    type: row.type,  // ✅ Store type in each time slot
+    days: row.days,
+    time: row.time
+});
+
                 
             } else {
                 invalidRows++;
@@ -414,23 +417,35 @@ class FileUploadManager {
             const [courseCode, sectionNum] = groupKey.split('-');
             
             sections.forEach((section, idx) => {
-                const totalHours = section.timeSlots.reduce((sum, slot) => {
-                    const [start, end] = slot.time.split('-').map(t => parseInt(t));
-                    return sum + (end - start);
-                }, 0);
+    const totalHours = section.timeSlots.reduce((sum, slot) => {
+        const [start, end] = slot.time.split('-').map(t => parseInt(t));
+        const duration = end - start;
+        const numDays = slot.days.split('-').length;  // ✅ Count days
+        return sum + (duration * numDays);  // ✅ Multiply!
+    }, 0);
                 
                 const typeClass = section.type === 'lecture' ? 'primary' : 
                                 section.type.includes('lab') ? 'success' : 'info';
                 
-                summaryHTML += `
-                    <tr>
-                        ${idx === 0 ? `<td rowspan="${sections.length}"><strong>${courseCode}</strong></td>` : ''}
-                        ${idx === 0 ? `<td rowspan="${sections.length}">${sectionNum}</td>` : ''}
-                        <td><span class="badge bg-${typeClass}">${section.type}</span></td>
-                        <td>${section.timeSlots.length} slot(s)</td>
-                        <td><strong>${totalHours}h</strong></td>
-                    </tr>
-                `;
+                // Count slot types for this unified section
+const lectureSlots = section.timeSlots.filter(s => s.type === 'lecture').length;
+const labSlots = section.timeSlots.filter(s => s.type.includes('lab')).length;
+const tutorialSlots = section.timeSlots.filter(s => s.type === 'tutorial').length;
+
+let typesSummary = [];
+if (lectureSlots > 0) typesSummary.push(`${lectureSlots}L`);
+if (labSlots > 0) typesSummary.push(`${labSlots}Lab`);
+if (tutorialSlots > 0) typesSummary.push(`${tutorialSlots}T`);
+
+summaryHTML += `
+    <tr>
+        <td><strong>${courseCode}</strong></td>
+        <td>${sectionNum}</td>
+        <td><span class="badge bg-primary">${typesSummary.join(' + ')}</span></td>
+        <td>${section.timeSlots.length} slot(s)</td>
+        <td><strong>${totalHours}h</strong></td>
+    </tr>
+`;
             });
         });
         
@@ -511,191 +526,156 @@ class FileUploadManager {
     // ==========================================
     // PROCESS UPLOADED SCHEDULE
     // ==========================================
-    async processUploadedSchedule() {
-        const previewBody = document.getElementById('filePreviewBody');
-        const academicLevel = document.getElementById('sectionAcademicLevel').value;
+   async processUploadedSchedule() {
+    const previewBody = document.getElementById('filePreviewBody');
+    const academicLevel = document.getElementById('sectionAcademicLevel').value;
+    
+    const rows = [];
+    
+    // Extract data from preview table (only valid rows)
+    const rowsElements = previewBody.querySelectorAll('tr');
+    rowsElements.forEach(tr => {
+        if (tr.classList.contains('table-success')) {
+            const cells = tr.querySelectorAll('td');
+            rows.push({
+                courseCode: cells[0].textContent.trim(),
+                section: cells[1].textContent.trim(),
+                type: cells[2].textContent.trim(),
+                days: cells[3].textContent.trim(),
+                time: cells[4].textContent.trim()
+            });
+        }
+    });
+    
+    if (rows.length === 0) {
+        alert('❌ No valid rows to process.');
+        return;
+    }
+    
+    // ✅ GROUP BY COURSE + SECTION ONLY (not by type)
+    const sectionsMap = {};
+    
+    rows.forEach(row => {
+        const key = `${row.courseCode}-${row.section}`;  // ← NO TYPE!
         
-        const rows = [];
+        if (!sectionsMap[key]) {
+            sectionsMap[key] = {
+                courseCode: row.courseCode,
+                sectionNumber: row.section,
+                timeSlots: []
+            };
+        }
         
-        // Extract data from preview table (only valid rows)
-        const rowsElements = previewBody.querySelectorAll('tr');
-        rowsElements.forEach(tr => {
-            if (tr.classList.contains('table-success')) {
-                const cells = tr.querySelectorAll('td');
-                rows.push({
-                    courseCode: cells[0].textContent.trim(),
-                    section: cells[1].textContent.trim(),
-                    type: cells[2].textContent.trim(),
-                    days: cells[3].textContent.trim(),
-                    time: cells[4].textContent.trim()
+        // Convert to time slot format
+        const dayNumbers = row.days.split('-');
+        const [startHour, endHour] = row.time.split('-');
+        
+        const dayMap = {
+            '1': 'Sunday', '2': 'Monday', '3': 'Tuesday',
+            '4': 'Wednesday', '5': 'Thursday'
+        };
+        
+        dayNumbers.forEach(dayNum => {
+            const dayName = dayMap[dayNum];
+            if (dayName) {
+                sectionsMap[key].timeSlots.push({
+                    type: row.type.toLowerCase(),
+                    day: dayName,
+                    start_time: `${startHour}:00`,
+                    end_time: `${endHour}:00`,
+                    duration: parseInt(endHour) - parseInt(startHour)
                 });
             }
         });
+    });
+    
+    const sectionsToCreate = Object.values(sectionsMap);
+    
+    // Confirmation
+    let confirmMsg = `Create ${sectionsToCreate.length} unified section(s)?\n\n`;
+    if (academicLevel) {
+        confirmMsg += `Academic Level: ${academicLevel}\n\n`;
+    }
+    
+    sectionsToCreate.forEach(section => {
+        const lectureCount = section.timeSlots.filter(s => s.type === 'lecture').length;
+        const labCount = section.timeSlots.filter(s => s.type.includes('lab')).length;
+        const tutorialCount = section.timeSlots.filter(s => s.type === 'tutorial').length;
         
-        if (rows.length === 0) {
-            alert('❌ No valid rows to process.');
-            return;
-        }
-        
-        // Group by course-section-type
-        const sectionsToCreate = [];
-        const courseSectionMap = {};
-        
-        rows.forEach(row => {
-            const key = `${row.courseCode}-${row.section}-${row.type}`;
-            const groupKey = `${row.courseCode}-${row.section}`;
+        confirmMsg += `\n${section.courseCode} Section ${section.sectionNumber}:`;
+        if (lectureCount > 0) confirmMsg += `\n  • ${lectureCount} lecture slot(s)`;
+        if (labCount > 0) confirmMsg += `\n  • ${labCount} lab slot(s)`;
+        if (tutorialCount > 0) confirmMsg += `\n  • ${tutorialCount} tutorial slot(s)`;
+    });
+    
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+    
+    // Show progress
+    const progressMsg = document.createElement('div');
+    progressMsg.className = 'alert alert-info mt-3';
+    progressMsg.innerHTML = '<i class="bi bi-hourglass-split"></i> Creating sections... Please wait.';
+    document.getElementById('uploadSummary').appendChild(progressMsg);
+    
+    let successCount = 0;
+    let failCount = 0;
+    const results = [];
+    
+    for (const section of sectionsToCreate) {
+        try {
+            // Convert to unified format
+            const timeSlotStrings = section.timeSlots.map(slot => 
+                `${slot.type}: ${slot.day} ${slot.start_time}-${slot.end_time}`
+            );
             
-            if (!courseSectionMap[groupKey]) {
-                courseSectionMap[groupKey] = { lectures: [], labs: [], tutorials: [] };
-            }
+            const response = await fetch(`${window.API_URL}/create-section-unified`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    course_code: section.courseCode,
+                    classroom: null,
+                    max_Number: null,
+                    time_Slot: timeSlotStrings,
+                    time_slots_detail: section.timeSlots,
+                    academic_level: academicLevel ? parseInt(academicLevel) : null,
+                    created_by: 'file_upload'
+                })
+            });
             
-            const timeSlots = this.convertToTimeSlots(row.days, row.time, row.type);
-            const sectionData = {
-                courseCode: row.courseCode,
-                sectionNumber: parseInt(row.section),
-                type: row.type.toLowerCase(),
-                timeSlots: timeSlots,
-                groupKey: groupKey
-            };
+            const data = await response.json();
             
-            sectionsToCreate.push(sectionData);
-            
-            // Categorize by type
-            if (row.type.toLowerCase() === 'lecture') {
-                courseSectionMap[groupKey].lectures.push(sectionData);
-            } else if (row.type.toLowerCase().includes('lab')) {
-                courseSectionMap[groupKey].labs.push(sectionData);
-            } else if (row.type.toLowerCase() === 'tutorial') {
-                courseSectionMap[groupKey].tutorials.push(sectionData);
+            if (response.ok) {
+                successCount++;
+                results.push(`✅ ${section.courseCode} Section ${section.sectionNumber}: Created as ${data.section.sec_num}`);
+            } else {
+                failCount++;
+                results.push(`❌ ${section.courseCode} Section ${section.sectionNumber}: ${data.error || 'Failed'}`);
             }
-        });
-        
-        // Confirmation
-        let confirmMsg = `Create ${sectionsToCreate.length} section(s)?\n\n`;
-        if (academicLevel) {
-            confirmMsg += `Academic Level: ${academicLevel}\n\n`;
-        } else {
-            confirmMsg += `Academic Level: Not specified (optional)\n\n`;
-        }
-        confirmMsg += `Sections to create:\n`;
-        
-        Object.keys(courseSectionMap).forEach(groupKey => {
-            const group = courseSectionMap[groupKey];
-            confirmMsg += `\n${groupKey}:`;
-            if (group.lectures.length > 0) confirmMsg += `\n  • ${group.lectures.length} lecture(s)`;
-            if (group.labs.length > 0) confirmMsg += `\n  • ${group.labs.length} lab(s) (will link to lecture)`;
-            if (group.tutorials.length > 0) confirmMsg += `\n  • ${group.tutorials.length} tutorial(s) (will link to lecture)`;
-        });
-        
-        if (!confirm(confirmMsg)) {
-            return;
-        }
-        
-        // Show progress
-        const progressMsg = document.createElement('div');
-        progressMsg.className = 'alert alert-info mt-3';
-        progressMsg.innerHTML = '<i class="bi bi-hourglass-split"></i> Creating sections... Please wait.';
-        document.getElementById('uploadSummary').appendChild(progressMsg);
-        
-        // Create sections in order: lectures first, then labs/tutorials
-        let successCount = 0;
-        let failCount = 0;
-        const results = [];
-        const lectureSectionMap = {};
-        
-        // Step 1: Create all lecture sections first
-        for (const sectionData of sectionsToCreate) {
-            if (sectionData.type === 'lecture') {
-                try {
-                    const response = await fetch(`${window.API_URL}/create-section`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            course_code: sectionData.courseCode,
-                            classroom: null,
-                            max_number: null,
-                            time_slots: sectionData.timeSlots,
-                            academic_level: academicLevel ? parseInt(academicLevel) : null,
-                            type: 'lecture',
-                            follows_lecture: null,
-                            section_number: null
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (response.ok) {
-                        successCount++;
-                        lectureSectionMap[sectionData.groupKey] = data.section.sec_num;
-                        results.push(`✅ ${sectionData.courseCode} Section ${sectionData.sectionNumber} Lecture: Created as ${data.section.sec_num}`);
-                    } else {
-                        failCount++;
-                        results.push(`❌ ${sectionData.courseCode} Section ${sectionData.sectionNumber} Lecture: ${data.error || 'Failed'}`);
-                    }
-                } catch (error) {
-                    failCount++;
-                    results.push(`❌ ${sectionData.courseCode} Section ${sectionData.sectionNumber} Lecture: Connection error`);
-                }
-            }
-        }
-        
-        // Step 2: Create labs and tutorials with references to their parent lectures
-        for (const sectionData of sectionsToCreate) {
-            if (sectionData.type !== 'lecture') {
-                const parentLecture = lectureSectionMap[sectionData.groupKey];
-                
-                try {
-                    const response = await fetch(`${window.API_URL}/create-section`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            course_code: sectionData.courseCode,
-                            classroom: null,
-                            max_number: null,
-                            time_slots: sectionData.timeSlots,
-                            academic_level: academicLevel ? parseInt(academicLevel) : null,
-                            type: sectionData.type,
-                            follows_lecture: parentLecture || null,
-                            section_number: null
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (response.ok) {
-                        successCount++;
-                        const linkInfo = parentLecture ? ` (linked to lecture ${parentLecture})` : '';
-                        results.push(`✅ ${sectionData.courseCode} Section ${sectionData.sectionNumber} ${sectionData.type}: Created as ${data.section.sec_num}${linkInfo}`);
-                    } else {
-                        failCount++;
-                        results.push(`❌ ${sectionData.courseCode} Section ${sectionData.sectionNumber} ${sectionData.type}: ${data.error || 'Failed'}`);
-                    }
-                } catch (error) {
-                    failCount++;
-                    results.push(`❌ ${sectionData.courseCode} Section ${sectionData.sectionNumber} ${sectionData.type}: Connection error`);
-                }
-            }
-        }
-        
-        // Remove progress message
-        progressMsg.remove();
-        
-        // Show detailed results
-        const resultMsg = `Section Creation Complete!\n\n` +
-              `✅ Successful: ${successCount}\n` +
-              `❌ Failed: ${failCount}\n\n` +
-              `Detailed Results:\n${results.join('\n')}`;
-        
-        alert(resultMsg);
-        
-        // Reset form if all succeeded
-        if (successCount > 0) {
-            if (failCount === 0) {
-                this.cancelFileUpload();
-                alert('✨ All sections created successfully! Labs and tutorials are linked to their parent lectures.');
-            }
+        } catch (error) {
+            failCount++;
+            results.push(`❌ ${section.courseCode} Section ${section.sectionNumber}: Connection error`);
         }
     }
+    
+    // Remove progress message
+    progressMsg.remove();
+    
+    // Show detailed results
+    const resultMsg = `Section Creation Complete!\n\n` +
+          `✅ Successful: ${successCount}\n` +
+          `❌ Failed: ${failCount}\n\n` +
+          `Detailed Results:\n${results.join('\n')}`;
+    
+    alert(resultMsg);
+    
+    // Reset form if all succeeded
+    if (successCount > 0 && failCount === 0) {
+        this.cancelFileUpload();
+        alert('✨ All unified sections created successfully!');
+    }
+}
+
 
     // ==========================================
     // CONVERT TIME SLOTS

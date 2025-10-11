@@ -1,6 +1,8 @@
 const { getDB } = require('../../db/connect');
+const sectionRepository = require('../../data/repositories/sectionRepository');
 
 class SectionService {
+    
     async getLectureSections(courseCode) {
         const db = getDB();
         return await db.collection('Section')
@@ -105,6 +107,46 @@ class SectionService {
                 return true;
         }
     }
+
+
+    async createSectionUnified(sectionData) {
+        const db = getDB();
+        
+        // Verify course exists
+        const course = await db.collection('Course').findOne({ 
+            code: sectionData.course_code 
+        });
+        
+        if (!course) {
+            throw new Error('Course not found');
+        }
+        
+        // Validate required fields
+        if (!sectionData.time_Slot || !Array.isArray(sectionData.time_Slot)) {
+            throw new Error('time_Slot array is required');
+        }
+        
+        if (sectionData.time_Slot.length === 0) {
+            throw new Error('At least one time slot is required');
+        }
+        
+        console.log('🔧 Service: Creating unified section for', sectionData.course_code);
+        
+        // Use repository to create the section
+        const newSection = await sectionRepository.createUnifiedSection({
+            course: sectionData.course_code,
+            classroom: sectionData.classroom || null,
+            max_Number: sectionData.max_Number || null,
+            time_Slot: sectionData.time_Slot,
+            time_slots_detail: sectionData.time_slots_detail || [],
+            academic_level: sectionData.academic_level || null,
+            created_by: sectionData.created_by || 'manual_entry'
+        });
+        
+        console.log('✅ Service: Unified section created:', newSection.sec_num);
+        return newSection;
+    }
+    
 }
 
 module.exports = new SectionService();
