@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student Dashboard - SmartSchedule</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/flatly/bootstrap.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    
+    <style>
+        .notification-item.unread {
+            background-color: #f8f9fa;
+        }
+
+        .notification-item:hover,
+        .deadline-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .deadline-item {
+            transition: all 0.2s ease;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+            min-width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+        }
+        
+        .border-danger.border-3 {
+            border-width: 3px !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="bi bi-calendar-check"></i> SmartSchedule
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">
+                            <i class="bi bi-house-door"></i> Home
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="#" data-bs-toggle="modal" data-bs-target="#notificationsModal">
+                            <i class="bi bi-bell"></i> 
+                            <span class="badge bg-danger badge-custom">3</span>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> Fatima Alsaggaf
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#">Profile</a></li>
+                            <li><a class="dropdown-item" href="#">Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <div class="student-welcome">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h3 class="fw-bold mb-2">Welcome back, Fatima!</h3>
+                    <p class="mb-0">Level 4 - Software Engineering | ID: 444200112</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="bg-light bg-opacity-25 p-3 rounded">
+                        <h5 class="mb-1">Current Semester</h5>
+                        <p class="mb-0 fw-bold">Fall 2025</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-4" id="studentTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule" type="button" role="tab">
+                    <i class="bi bi-calendar3"></i> My Schedule
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="elective-tab" data-bs-toggle="tab" data-bs-target="#elective" type="button" role="tab">
+                    <i class="bi bi-pencil-square"></i> Elective Form
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="studentTabsContent">
+            <div class="tab-pane fade show active" id="schedule" role="tabpanel">
+                <div class="dashboard-card">
+                    <h5 class="fw-bold mb-3">Select Academic Level</h5>
+                    <div class="level-buttons">
+                        <div class="btn-group" role="group" id="levelButtonsGroup">
+                            <button class="btn btn-outline-primary" data-level="3">Level 3</button>
+                            <button class="btn btn-primary" data-level="4">Level 4</button>
+                            <button class="btn btn-outline-primary" data-level="5">Level 5</button>
+                            <button class="btn btn-outline-primary" data-level="6">Level 6</button>
+                            <button class="btn btn-outline-primary" data-level="7">Level 7</button>
+                            <button class="btn btn-outline-primary" data-level="8">Level 8</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0" id="scheduleTitle">
+                            <i class="bi bi-calendar3"></i> Academic Schedule - Level 4
+                        </h5>
+                        <div id="scheduleBadges">
+                            <span class="badge bg-success me-2">Current</span>
+                            <span class="badge bg-primary">Final Version</span>
+                        </div>
+                    </div>
+
+                    <div id="scheduleContainer">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading schedule...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading schedule...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="elective" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="dashboard-card">
+                            <h5 class="fw-bold mb-3">
+                                <i class="bi bi-list-check"></i> Available Elective Courses
+                            </h5>
+                            <div class="mb-3">
+                                <span class="badge bg-primary">Selected: <span id="selectedCount">0</span> courses</span>
+                            </div>
+                            <div id="coursesList">
+                                <div class="text-center text-muted py-3">
+                                    <i class="bi bi-hourglass-split"></i> Loading courses...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="dashboard-card">
+                            <h5 class="fw-bold mb-3">
+                                <i class="bi bi-check-circle"></i> Selected Electives
+                            </h5>
+                            <div class="selected-list" id="selectedList">
+                                <div class="empty-message">No courses selected yet</div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <h5 class="fw-bold mb-3">
+                                <i class="bi bi-chat-dots"></i> Suggestions & Needs
+                            </h5>
+                            <div class="mb-3">
+                                <label for="studentSuggestions" class="form-label">Do you have any course suggestions or special needs?</label>
+                                <textarea class="form-control" id="studentSuggestions" rows="4" placeholder="Example: 
+- I'm interested in cloud security courses
+- I need evening classes
+- I suggest adding blockchain course
+- I have special scheduling needs..."></textarea>
+                            </div>
+                            <button class="btn btn-primary w-100" id="submitElectiveBtn">
+                                <i class="bi bi-send-check"></i> Submit Elective Preferences
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comment Modal -->
+    <div class="modal fade" id="commentModal" tabindex="-1" aria-labelledby="commentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content comment-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="commentModalLabel">Add Comment</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <p><strong>Course:</strong> <span id="modalCourseName"></span></p>
+                        <p><strong>Time:</strong> <span id="modalTimeSlot"></span></p>
+                    </div>
+                    <div class="mb-3">
+                        <label for="commentText" class="form-label">Your Comment:</label>
+                        <textarea class="form-control" id="commentText" rows="4" placeholder="Share your thoughts about this course..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveCommentBtn">Save Comment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notifications Modal -->
+    <div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold" id="notificationsModalLabel">
+                        <i class="bi bi-bell me-2 text-primary"></i> Notifications & Deadlines
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs px-3 pt-3" id="notificationTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button 
+                                class="nav-link active" 
+                                id="notifications-tab" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#notifications-panel" 
+                                type="button" 
+                                role="tab">
+                                <i class="bi bi-bell me-2"></i>Notifications
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button 
+                                class="nav-link" 
+                                id="deadlines-tab" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#deadlines-panel" 
+                                type="button" 
+                                role="tab">
+                                <i class="bi bi-calendar-event me-2"></i>Deadlines
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="notificationTabContent">
+                        <!-- Notifications Panel -->
+                        <div 
+                            class="tab-pane fade show active" 
+                            id="notifications-panel" 
+                            role="tabpanel">
+                            <div id="notificationsList" style="max-height: 500px; overflow-y: auto;">
+                                <!-- Populated by JavaScript -->
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm me-2"></div>
+                                    Loading notifications...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deadlines Panel -->
+                        <div 
+                            class="tab-pane fade" 
+                            id="deadlines-panel" 
+                            role="tabpanel">
+                            <div id="deadlinesList" style="max-height: 500px; overflow-y: auto;">
+                                <!-- Populated by JavaScript -->
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm me-2"></div>
+                                    Loading deadlines...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/Sschedule.js"></script>
+        <script src="assets/js/elective-form.js"></script>
+
+</body>
+</html>

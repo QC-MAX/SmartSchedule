@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Count Management - SmartSchedule</title>
+  <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold" href="index.html">
+        <i class="bi bi-calendar-check me-2"></i>SmartSchedule
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">
+              <i class="bi bi-house-door"></i> Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="students.html">
+              <i class="bi bi-people"></i> Student Counts
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="rules.html">
+              <i class="bi bi-sliders"></i> Rules
+            </a>
+          </li>
+           <li class="nav-item">
+              <a class="nav-link" href="#">
+                <i class="bi bi-clock-history"></i> Version History
+              </a>
+            </li>
+        </ul>
+        <ul class="navbar-nav">
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle"></i>
+              <span id="userDisplay">User</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#" id="logoutBtn">Logout</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container my-5">
+    <div class="row mb-4">
+      <div class="col">
+        <h2 class="fw-bold"><i class="bi bi-people-fill text-primary"></i> Student Count Management</h2>
+        <p class="text-muted">Manage student counts for each level and course</p>
+      </div>
+    </div>
+
+    <!-- Section 1: Level Student Counts -->
+    <div class="section-card">
+      <div class="section-title">
+        <i class="bi bi-1-circle-fill text-primary me-2"></i>
+        Student Count Per Level
+      </div>
+      <p class="text-muted mb-4">Enter the total number of students for each level (3-8)</p>
+      
+      <div class="row">
+        <div class="col-md-6">
+          <div class="level-input-group">
+            <label class="level-label">Level 3:</label>
+            <input type="number" class="form-control" id="level_3" min="0" placeholder="Enter student count">
+          </div>
+          <div class="level-input-group">
+            <label class="level-label">Level 4:</label>
+            <input type="number" class="form-control" id="level_4" min="0" placeholder="Enter student count">
+          </div>
+          <div class="level-input-group">
+            <label class="level-label">Level 5:</label>
+            <input type="number" class="form-control" id="level_5" min="0" placeholder="Enter student count">
+          </div>
+          <div class="level-input-group">
+            <label class="level-label">Level 6:</label>
+            <input type="number" class="form-control" id="level_6" min="0" placeholder="Enter student count">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="level-input-group">
+            <label class="level-label">Level 7:</label>
+            <input type="number" class="form-control" id="level_7" min="0" placeholder="Enter student count">
+          </div>
+          <div class="level-input-group">
+            <label class="level-label">Level 8:</label>
+            <input type="number" class="form-control" id="level_8" min="0" placeholder="Enter student count">
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <button class="btn btn-primary" onclick="saveLevelCounts()">
+          <i class="bi bi-save me-2"></i>Save Level Counts
+        </button>
+      </div>
+    </div>
+
+    <!-- Section 2: Course Student Counts -->
+    <div class="section-card">
+      <div class="section-title">
+        <i class="bi bi-2-circle-fill text-success me-2"></i>
+        Student Count Per Course
+      </div>
+      <p class="text-muted mb-4">Choose method: Upload file or manually enter counts</p>
+
+      <!-- Method Selection -->
+      <div class="btn-group mb-4" role="group">
+        <input type="radio" class="btn-check" name="inputMethod" id="methodManual" checked>
+        <label class="btn btn-outline-primary" for="methodManual">
+          <i class="bi bi-pencil-square"></i> Manual Entry
+        </label>
+        
+        <input type="radio" class="btn-check" name="inputMethod" id="methodUpload">
+        <label class="btn btn-outline-primary" for="methodUpload">
+          <i class="bi bi-cloud-upload"></i> Upload File
+        </label>
+      </div>
+
+      <!-- Manual Entry Section -->
+      <div id="manualEntrySection">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Select Level to Load Courses:</label>
+          <select class="form-select form-select-lg" id="courseLevel" onchange="loadCourses()">
+            <option value="">-- Select a Level --</option>
+            <option value="3">Level 3</option>
+            <option value="4">Level 4</option>
+            <option value="5">Level 5</option>
+            <option value="6">Level 6</option>
+            <option value="7">Level 7</option>
+            <option value="8">Level 8</option>
+          </select>
+        </div>
+
+        <div id="coursesContainer">
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Please select a level to load courses
+          </div>
+        </div>
+
+        <div id="manualSaveBtn" style="display:none">
+          <button class="btn btn-success" onclick="saveCourseCounts()">
+            <i class="bi bi-save me-2"></i>Save Course Counts
+          </button>
+        </div>
+      </div>
+
+      <!-- Upload Section -->
+      <div id="uploadSection" style="display:none">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Select Level for Upload:</label>
+          <select class="form-select form-select-lg" id="uploadLevel">
+            <option value="">-- Select a Level --</option>
+            <option value="3">Level 3</option>
+            <option value="4">Level 4</option>
+            <option value="5">Level 5</option>
+            <option value="6">Level 6</option>
+            <option value="7">Level 7</option>
+            <option value="8">Level 8</option>
+          </select>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="fileInput" accept="image/*,.pdf" style="display:none">
+          <i class="bi bi-cloud-arrow-up-fill fs-1 text-primary mb-3"></i>
+          <h5>Drag & Drop File Here or Click to Browse</h5>
+          <p class="text-muted">Supported formats: PDF, JPG, PNG (Max 10MB)</p>
+          <p class="text-muted"><small>File should contain course codes and student counts</small></p>
+          
+          <div id="fileInfo" class="mt-3" style="display:none">
+            <div class="alert alert-success">
+              <i class="bi bi-file-earmark-check me-2"></i>
+              <strong id="fileName"></strong>
+              <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeFile()">
+                <i class="bi bi-x"></i> Remove
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="uploadProgress" class="mt-3" style="display:none">
+          <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                 role="progressbar" style="width: 100%"></div>
+          </div>
+          <p class="text-center mt-2">Processing file...</p>
+        </div>
+
+        <div class="mt-3">
+          <button class="btn btn-success" id="uploadBtn" onclick="uploadFile()" disabled>
+            <i class="bi bi-upload me-2"></i>Upload & Process
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current Data Display -->
+    <div class="section-card">
+      <div class="section-title">
+        <i class="bi bi-table text-info me-2"></i>
+        Current Student Data
+      </div>
+      
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Level</th>
+              <th>Total Students</th>
+              <th>Courses with Data</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="dataTableBody">
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                <div class="spinner-border spinner-border-sm me-2"></div>
+                Loading data...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fixed Save Button -->
+  <button class="btn btn-primary btn-lg save-btn-fixed" onclick="saveAll()" id="saveAllBtn" style="display:none">
+    <i class="bi bi-save-fill me-2"></i>Save All Changes
+  </button>
+
+  <script src="assets/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_BASE = 'http://localhost:4000/api/students';
+    let currentCourses = [];
+    let hasChanges = false;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadUserInfo();
+      loadCurrentData();
+      setupMethodToggle();
+      setupUploadHandlers();
+      loadExistingLevelCounts();
+    });
+
+    function loadUserInfo() {
+      const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+      const displayName = `${user.First_Name || ''} ${user.Last_Name || ''}`.trim() || 'User';
+      document.getElementById('userDisplay').textContent = displayName;
+      
+      document.getElementById('logoutBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        sessionStorage.clear();
+        window.location.href = 'LoginReg.html';
+      });
+    }
+
+    // Method toggle
+    function setupMethodToggle() {
+      document.getElementById('methodManual').addEventListener('change', function() {
+        if(this.checked) {
+          document.getElementById('manualEntrySection').style.display = 'block';
+          document.getElementById('uploadSection').style.display = 'none';
+        }
+      });
+
+      document.getElementById('methodUpload').addEventListener('change', function() {
+        if(this.checked) {
+          document.getElementById('manualEntrySection').style.display = 'none';
+          document.getElementById('uploadSection').style.display = 'block';
+        }
+      });
+    }
+
+    // Load existing level counts from database
+    async function loadExistingLevelCounts() {
+      try {
+        const response = await fetch(`${API_BASE}/levels`);
+        const data = await response.json();
+        
+        if (data.success) {
+          data.data.forEach(level => {
+            const input = document.getElementById(`level_${level.level_num}`);
+            if (input && level.student_count) {
+              input.value = level.student_count;
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading level counts:', error);
+      }
+    }
+
+    // Load courses for selected level
+    async function loadCourses() {
+      const levelNum = document.getElementById('courseLevel').value;
+      const container = document.getElementById('coursesContainer');
+      
+      if (!levelNum) {
+        container.innerHTML = `
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Please select a level to load courses
+          </div>
+        `;
+        document.getElementById('manualSaveBtn').style.display = 'none';
+        return;
+      }
+
+      container.innerHTML = '<div class="text-center py-3"><div class="spinner-border"></div></div>';
+
+      try {
+        const response = await fetch(`${API_BASE}/levels`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const level = data.data.find(l => l.level_num == levelNum);
+          
+          if (level && level.courses && level.courses.length > 0) {
+            currentCourses = level.courses;
+            
+            container.innerHTML = `
+              <div class="alert alert-success mb-3">
+                <i class="bi bi-check-circle me-2"></i>
+                Found ${level.courses.length} courses for Level ${levelNum}
+              </div>
+              <div id="coursesList"></div>
+            `;
+
+            const coursesList = document.getElementById('coursesList');
+            coursesList.innerHTML = level.courses.map(course => {
+              const currentCount = level.course_enrollments[course.code] || '';
+              return `
+                <div class="course-item">
+                  <span class="course-code">${course.code}</span>
+                  <span class="course-name">${course.name}</span>
+                  <input type="number" class="form-control" style="max-width: 120px" 
+                         data-course-code="${course.code}" value="${currentCount}" 
+                         min="0" placeholder="Count" onchange="markChanges()">
+                </div>
+              `;
+            }).join('');
+
+            document.getElementById('manualSaveBtn').style.display = 'block';
+          } else {
+            container.innerHTML = `
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                No courses found for Level ${levelNum}
+              </div>
+            `;
+            document.getElementById('manualSaveBtn').style.display = 'none';
+          }
+        }
+      } catch (error) {
+        console.error('Error loading courses:', error);
+        container.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="bi bi-x-circle me-2"></i>
+            Error loading courses
+          </div>
+        `;
+      }
+    }
+
+    // Save level counts
+    async function saveLevelCounts() {
+      const levels = [3, 4, 5, 6, 7, 8];
+      let successCount = 0;
+
+      for (const levelNum of levels) {
+        const input = document.getElementById(`level_${levelNum}`);
+        const count = parseInt(input.value) || 0;
+
+        if (count > 0) {
+          try {
+            const response = await fetch(`${API_BASE}/level/${levelNum}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ student_count: count })
+            });
+
+            const data = await response.json();
+            if (data.success) successCount++;
+          } catch (error) {
+            console.error(`Error saving level ${levelNum}:`, error);
+          }
+        }
+      }
+
+      if (successCount > 0) {
+        showAlert(`Successfully saved ${successCount} level(s)`, 'success');
+        loadCurrentData();
+      } else {
+        showAlert('No data to save', 'warning');
+      }
+    }
+
+    // Save course counts
+    async function saveCourseCounts() {
+      const levelNum = document.getElementById('courseLevel').value;
+      
+      if (!levelNum) {
+        showAlert('Please select a level', 'warning');
+        return;
+      }
+
+      const courseInputs = document.querySelectorAll('[data-course-code]');
+      const courseEnrollments = {};
+      
+      courseInputs.forEach(input => {
+        const code = input.dataset.courseCode;
+        const count = parseInt(input.value) || 0;
+        if (count > 0) {
+          courseEnrollments[code] = count;
+        }
+      });
+
+      if (Object.keys(courseEnrollments).length === 0) {
+        showAlert('Please enter at least one course count', 'warning');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/level/${levelNum}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ course_enrollments: courseEnrollments })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('Course counts saved successfully', 'success');
+          hasChanges = false;
+          document.getElementById('saveAllBtn').style.display = 'none';
+          loadCurrentData();
+        } else {
+          showAlert(data.error || 'Error saving data', 'danger');
+        }
+      } catch (error) {
+        console.error('Error saving:', error);
+        showAlert('Error saving course counts', 'danger');
+      }
+    }
+
+    // Upload handlers
+    function setupUploadHandlers() {
+      const uploadArea = document.getElementById('uploadArea');
+      const fileInput = document.getElementById('fileInput');
+      const uploadLevel = document.getElementById('uploadLevel');
+
+      uploadArea.addEventListener('click', () => fileInput.click());
+      
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+      });
+
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+      });
+
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+          fileInput.files = e.dataTransfer.files;
+          handleFileSelect(e.dataTransfer.files[0]);
+        }
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          handleFileSelect(e.target.files[0]);
+        }
+      });
+
+      uploadLevel.addEventListener('change', checkUploadReady);
+    }
+
+    function handleFileSelect(file) {
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileInfo').style.display = 'block';
+      checkUploadReady();
+    }
+
+    function removeFile() {
+      document.getElementById('fileInput').value = '';
+      document.getElementById('fileInfo').style.display = 'none';
+      document.getElementById('uploadBtn').disabled = true;
+    }
+
+    function checkUploadReady() {
+      const hasFile = document.getElementById('fileInput').files.length > 0;
+      const hasLevel = document.getElementById('uploadLevel').value !== '';
+      document.getElementById('uploadBtn').disabled = !(hasFile && hasLevel);
+    }
+
+    async function uploadFile() {
+      const fileInput = document.getElementById('fileInput');
+      const levelNum = document.getElementById('uploadLevel').value;
+
+      if (!fileInput.files[0] || !levelNum) {
+        showAlert('Please select both file and level', 'warning');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('levelNum', levelNum);
+
+      document.getElementById('uploadProgress').style.display = 'block';
+      document.getElementById('uploadBtn').disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}/upload`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('File processed successfully!', 'success');
+          fileInput.value = '';
+          document.getElementById('uploadLevel').value = '';
+          document.getElementById('fileInfo').style.display = 'none';
+          loadCurrentData();
+        } else {
+          showAlert(data.error || 'Error processing file', 'danger');
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        showAlert('Error uploading file', 'danger');
+      } finally {
+        document.getElementById('uploadProgress').style.display = 'none';
+        document.getElementById('uploadBtn').disabled = false;
+      }
+    }
+
+    // Load current data table
+    async function loadCurrentData() {
+      try {
+        const response = await fetch(`${API_BASE}/levels`);
+        const data = await response.json();
+
+        const tbody = document.getElementById('dataTableBody');
+
+        if (data.success && data.data.length > 0) {
+          tbody.innerHTML = data.data.map(level => `
+            <tr>
+              <td><strong>Level ${level.level_num}</strong></td>
+              <td>${level.student_count || 0} students</td>
+              <td>${Object.keys(level.course_enrollments).length} courses</td>
+              <td>${level.updated_at ? new Date(level.updated_at).toLocaleString() : 'N/A'}</td>
+              <td>
+                <button class="btn btn-sm btn-outline-danger" onclick="clearLevelData(${level.level_num})">
+                  <i class="bi bi-trash"></i> Clear
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center text-muted">No data available</td>
+            </tr>
+          `;
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    }
+
+    async function clearLevelData(levelNum) {
+      if (!confirm(`Are you sure you want to clear all data for Level ${levelNum}?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/level/${levelNum}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('Data cleared successfully', 'success');
+          document.getElementById(`level_${levelNum}`).value = '';
+          loadCurrentData();
+        } else {
+          showAlert(data.error || 'Error clearing data', 'danger');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showAlert('Error clearing data', 'danger');
+      }
+    }
+
+    function markChanges() {
+      hasChanges = true;
+      document.getElementById('saveAllBtn').style.display = 'block';
+    }
+
+    function saveAll() {
+      saveCourseCounts();
+    }
+
+    function showAlert(message, type = 'info') {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+      alertDiv.style.zIndex = '9999';
+      alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      
+      document.body.appendChild(alertDiv);
+      
+      setTimeout(() => alertDiv.remove(), 4000);
+    }
+  </script>
+</body>
+</html>
