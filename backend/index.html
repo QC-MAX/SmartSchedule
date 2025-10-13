@@ -1,0 +1,461 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schedule Committee</title>
+
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    />
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="#">
+          <i class="bi bi-calendar-check me-2"></i>SmartSchedule
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a class="nav-link active" href="#">
+                <i class="bi bi-house-door"></i> Dashboard
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="students.html">
+                <i class="bi bi-people"></i> Student Sections
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="rules.html">
+                <i class="bi bi-sliders"></i> Rules
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                href="#"
+                data-bs-toggle="modal"
+                data-bs-target="#versionsModal"
+              >
+                <i class="bi bi-clock-history"></i> Version History
+              </a>
+            </li>
+          </ul>
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a
+                class="nav-link position-relative"
+                href="#"
+                data-bs-toggle="modal"
+                data-bs-target="#notificationsModal"
+              >
+                <i class="bi bi-bell"></i> Notifications
+                <span class="notification-badge badge bg-danger">3</span>
+              </a>
+            </li>
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                data-bs-toggle="dropdown"
+              >
+                <i class="bi bi-person-circle"></i>
+                <span id="userDisplay">Committee Member</span>
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#">Profile</a></li>
+                <li><a class="dropdown-item" href="#">Settings</a></li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <a class="dropdown-item" href="#" id="logoutBtn">Logout</a>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-4">
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="dashboard-card text-center">
+            <i class="bi bi-person-exclamation fs-1 text-danger mb-3"></i>
+            <h5>Irregular Students</h5>
+            <p>Manage students with special schedules</p>
+            <button class="btn btn-outline-danger btn-sm" id="btnIrregulars">
+              Manage Students
+            </button>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="dashboard-card text-center">
+            <i class="bi bi-building fs-1 text-success mb-3"></i>
+            <h5>Department Data</h5>
+            <p>Enter course information from other departments</p>
+            <button class="btn btn-outline-success btn-sm">
+              Manage Courses
+            </button>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="dashboard-card text-center">
+            <i class="bi bi-calendar-plus fs-1 text-warning mb-3"></i>
+            <h5>Generate Schedule</h5>
+            <p>Create new schedule based on current data</p>
+            <button id="generateBtn" class="btn btn-outline-warning btn-sm">
+              Generate Now
+            </button>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="dashboard-card text-center">
+            <i class="bi bi-chat-dots fs-1 text-info mb-3"></i>
+            <h5>Student Comments</h5>
+            <p>Review and manage student feedback</p>
+            <button class="btn btn-outline-info btn-sm">
+              View All Comments
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container my-4">
+      <div class="card shadow-sm border-0 rounded-3 p-3">
+        <h5 class="fw-semibold mb-3">Academic Levels</h5>
+        <div class="btn-group" role="group" aria-label="Academic Levels">
+          <button type="button" class="btn btn-dark">Level 3</button>
+          <button type="button" class="btn btn-outline-dark">Level 4</button>
+          <button type="button" class="btn btn-outline-dark">Level 5</button>
+          <button type="button" class="btn btn-outline-dark">Level 6</button>
+          <button type="button" class="btn btn-outline-dark">Level 7</button>
+          <button type="button" class="btn btn-outline-dark">Level 8</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="schedule-container" class="container my-4"></div>
+
+    <!-- Irregulars: View Modal -->
+    <div
+      class="modal fade"
+      id="irregularsModal"
+      tabindex="-1"
+      aria-labelledby="irregularsModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-semibold" id="irregularsModalLabel">
+              <i class="bi bi-person-exclamation me-2 text-danger"></i>
+              Irregular Students
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <!-- Add Irregular Button at top -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <p class="text-muted mb-0">
+                <small>Showing only students marked as irregular.</small>
+              </p>
+              <button
+                type="button"
+                class="btn btn-sm btn-danger"
+                id="openAddIrregularModal"
+              >
+                <i class="bi bi-plus-lg me-1"></i> Add Irregular Student
+              </button>
+            </div>
+
+            <!-- Table -->
+            <div class="table-responsive border rounded">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 160px">Student ID</th>
+                    <th style="width: 90px">Level</th>
+                    <th>Remaining Courses</th>
+                    <th style="width: 110px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="irregularsTbody">
+                  <!-- Rows populated by JS -->
+                  <tr>
+                    <td colspan="4" class="text-center text-muted py-4">
+                      <div
+                        class="spinner-border spinner-border-sm text-danger me-2"
+                      ></div>
+                      Loading...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Irregulars: Add Modal -->
+    <div
+      class="modal fade"
+      id="addIrregularModal"
+      tabindex="-1"
+      aria-labelledby="addIrregularModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <form id="addIrregularForm">
+            <div class="modal-header">
+              <h5 class="modal-title fw-semibold" id="addIrregularModalLabel">
+                <i class="bi bi-person-plus-fill me-2 text-danger"></i> Add
+                Irregular Student
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold"
+                    >Student ID <span class="text-danger">*</span></label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="irStudentId"
+                    placeholder="e.g., 443200002"
+                    required
+                  />
+                  <div class="form-text">Enter the student's ID number</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold"
+                    >Level <span class="text-danger">*</span></label
+                  >
+                  <select class="form-select" id="irLevel" required>
+                    <option value="" disabled selected>Select a level</option>
+                    <option value="6">Level 6</option>
+                    <option value="7">Level 7</option>
+                    <option value="8">Level 8</option>
+                  </select>
+                  <div class="form-text">
+                    Select the student's current level
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label fw-semibold"
+                    >Remaining Courses</label
+                  >
+                  <select
+                    class="form-select"
+                    id="irRemainingCourses"
+                    multiple
+                    size="10"
+                  >
+                    <option value="" disabled>
+                      Select a level first to load courses
+                    </option>
+                  </select>
+                  <div class="form-text">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Hold <kbd>Ctrl</kbd> (Windows) or <kbd>Cmd</kbd> (Mac) to
+                    select multiple courses.
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                class="btn btn-outline-secondary"
+                data-bs-dismiss="modal"
+                type="button"
+              >
+                Cancel
+              </button>
+              <button class="btn btn-danger" type="submit">
+                <i class="bi bi-save me-1"></i> Save Irregular Student
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+
+    <!-- User Display and Logout Script -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const displayEl = document.getElementById("userDisplay");
+        const logoutBtn = document.getElementById("logoutBtn");
+
+        // Read from sessionStorage
+        const raw = sessionStorage.getItem("user");
+        console.log("[SmartSchedule] raw sessionStorage.user =", raw);
+
+        let user = null;
+        try {
+          user = raw ? JSON.parse(raw) : null;
+        } catch (e) {
+          console.warn(
+            "[SmartSchedule] Could not parse sessionStorage.user:",
+            e
+          );
+        }
+        console.log("[SmartSchedule] parsed user =", user);
+
+        // Build display name
+        const first =
+          user?.First_Name ??
+          user?.firstName ??
+          user?.FirstName ??
+          user?.name?.first ??
+          "";
+        const last =
+          user?.Last_Name ??
+          user?.lastName ??
+          user?.LastName ??
+          user?.name?.last ??
+          "";
+        const email = user?.Email ?? user?.email ?? "";
+        const role = user?.role ?? "";
+
+        const displayName =
+          [first, last].filter(Boolean).join(" ").trim() ||
+          email ||
+          role ||
+          "User";
+
+        // Set the UI
+        if (displayEl) {
+          displayEl.textContent = displayName;
+          console.log("[SmartSchedule] display name =", displayName);
+        } else {
+          console.warn("[SmartSchedule] #userDisplay element not found");
+        }
+
+        // Logout
+        if (logoutBtn) {
+          logoutBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            sessionStorage.removeItem("user");
+            sessionStorage.removeItem("token");
+            window.location.href = "LoginReg.html";
+          });
+        } else {
+          console.warn("[SmartSchedule] #logoutBtn not found");
+        }
+      });
+    </script>
+<-!- Notifications Modal -->
+<div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-semibold" id="notificationsModalLabel">
+          <i class="bi bi-bell me-2 text-primary"></i> Notifications & Deadlines
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <!-- Tabs -->
+        <ul class="nav nav-tabs px-3 pt-3" id="notificationTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button 
+              class="nav-link active" 
+              id="notifications-tab" 
+              data-bs-toggle="tab" 
+              data-bs-target="#notifications-panel" 
+              type="button" 
+              role="tab">
+              <i class="bi bi-bell me-2"></i>Notifications
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button 
+              class="nav-link" 
+              id="deadlines-tab" 
+              data-bs-toggle="tab" 
+              data-bs-target="#deadlines-panel" 
+              type="button" 
+              role="tab">
+              <i class="bi bi-calendar-event me-2"></i>Deadlines
+            </button>
+          </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="notificationTabContent">
+          <!-- Notifications Panel -->
+          <div 
+            class="tab-pane fade show active" 
+            id="notifications-panel" 
+            role="tabpanel">
+            <div id="notificationsList" style="max-height: 500px; overflow-y: auto;">
+              <!-- Populated by JavaScript -->
+              <div class="text-center py-3">
+                <div class="spinner-border spinner-border-sm me-2"></div>
+                Loading notifications...
+              </div>
+            </div>
+          </div>
+
+          <!-- Deadlines Panel -->
+          <div 
+            class="tab-pane fade" 
+            id="deadlines-panel" 
+            role="tabpanel">
+            <div id="deadlinesList" style="max-height: 500px; overflow-y: auto;">
+              <!-- Populated by JavaScript -->
+              <div class="text-center py-3">
+                <div class="spinner-border spinner-border-sm me-2"></div>
+                Loading deadlines...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/irregulars.js"></script>
+    <script src="assets/js/notifications.js"></script>
+  </body>
+</html>
