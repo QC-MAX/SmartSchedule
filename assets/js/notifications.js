@@ -17,17 +17,20 @@
   /**
    * Load current user from session storage
    */
-  function loadCurrentUser() {
-    const raw = sessionStorage.getItem("user");
-    if (raw) {
-      try {
-        currentUser = JSON.parse(raw);
-        console.log("[NOTIFICATIONS] Current user:", currentUser);
-      } catch (e) {
-        console.error("[NOTIFICATIONS] Error parsing user:", e);
-      }
+function loadCurrentUser() {
+  const raw = sessionStorage.getItem("user");
+  if (raw) {
+    try {
+      currentUser = JSON.parse(raw);
+      console.log("[NOTIFICATIONS] Current user:", currentUser);
+      console.log("[NOTIFICATIONS] User ID field names:", Object.keys(currentUser)); // ADD THIS
+      console.log("[NOTIFICATIONS] _id:", currentUser._id);
+      console.log("[NOTIFICATIONS] id:", currentUser.id);
+    } catch (e) {
+      console.error("[NOTIFICATIONS] Error parsing user:", e);
     }
   }
+}
 
   /**
    * Setup notification bell button
@@ -121,128 +124,156 @@
   /**
    * Load notifications and deadlines
    */
-  async function loadNotificationsAndDeadlines() {
-    const notifList = document.getElementById("notificationsList");
-    const deadlinesList = document.getElementById("deadlinesList");
-    
-    if (!notifList || !deadlinesList) {
-      console.error("[NOTIFICATIONS] Lists not found!");
-      return;
-    }
-
-    // Show loading
-    notifList.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>';
-    deadlinesList.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>';
-
-    try {
-      const userRole = currentUser.role === "Scheduler" ? "Scheduling committee" : currentUser.role;
-      
-      // Get user's ObjectId (_id) from sessionStorage
-      const userObjectId = currentUser._id || currentUser.id;
-      
-      // Fetch notifications by user's ObjectId
-      console.log("[NOTIFICATIONS] Fetching notifications for ObjectId:", userObjectId);
-      const notifResponse = await fetch(
-        `${API_BASE}/notifications/user/${userObjectId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-          }
-        }
-      );
-      
-      if (!notifResponse.ok) {
-        throw new Error("Failed to load notifications");
-      }
-      
-      const notifData = await notifResponse.json();
-      console.log("[NOTIFICATIONS] Notifications data:", notifData);
-      
-      // Fetch deadlines by role
-      console.log("[NOTIFICATIONS] Fetching deadlines for role:", userRole);
-      const deadlinesResponse = await fetch(
-        `${API_BASE}/deadlines/role/${encodeURIComponent(userRole)}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-          }
-        }
-      );
-      
-      if (!deadlinesResponse.ok) {
-        throw new Error("Failed to load deadlines");
-      }
-      
-      const deadlinesData = await deadlinesResponse.json();
-      console.log("[NOTIFICATIONS] Deadlines data:", deadlinesData);
-
-      // Display notifications
-      const notifications = notifData.data || notifData.notifications || notifData;
-      displayNotifications(Array.isArray(notifications) ? notifications : []);
-      
-      // Display deadlines
-      const deadlines = deadlinesData.data || deadlinesData.deadlines || deadlinesData;
-      displayDeadlines(Array.isArray(deadlines) ? deadlines : []);
-      
-    } catch (error) {
-      console.error("[NOTIFICATIONS] Error loading:", error);
-      notifList.innerHTML = `<div class="text-danger text-center py-3">${error.message}</div>`;
-      deadlinesList.innerHTML = `<div class="text-danger text-center py-3">${error.message}</div>`;
-    }
+/**
+ * Load notifications and deadlines
+ */
+async function loadNotificationsAndDeadlines() {
+  const notifList = document.getElementById("notificationsList");
+  const deadlinesList = document.getElementById("deadlinesList");
+  
+  if (!notifList || !deadlinesList) {
+    console.error("[NOTIFICATIONS] Lists not found!");
+    return;
   }
+
+  // Show loading
+  notifList.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>';
+  deadlinesList.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>';
+
+  try {
+    const userRole = currentUser.role === "Scheduler" ? "Scheduling committee" : currentUser.role;
+    
+    // Get user's ObjectId (_id) from sessionStorage
+    const userObjectId = currentUser._id || currentUser.id;
+    
+    // Fetch notifications by user's ObjectId
+    console.log("[NOTIFICATIONS] Fetching notifications for ObjectId:", userObjectId);
+    const notifResponse = await fetch(
+      `${API_BASE}/notifications/user/${userObjectId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        }
+      }
+    );
+    
+    if (!notifResponse.ok) {
+      throw new Error("Failed to load notifications");
+    }
+    
+    const notifData = await notifResponse.json();
+    console.log("[NOTIFICATIONS] Raw response:", notifData);
+    console.log("[NOTIFICATIONS] Response structure - has .data?", !!notifData.data);
+    console.log("[NOTIFICATIONS] Response structure - has .notifications?", !!notifData.notifications);
+    console.log("[NOTIFICATIONS] Data type:", typeof notifData.data);
+    console.log("[NOTIFICATIONS] Is array?", Array.isArray(notifData.data));
+    
+    // Fetch deadlines by role
+    console.log("[NOTIFICATIONS] Fetching deadlines for role:", userRole);
+    const deadlinesResponse = await fetch(
+      `${API_BASE}/deadlines/role/${encodeURIComponent(userRole)}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        }
+      }
+    );
+    
+    if (!deadlinesResponse.ok) {
+      throw new Error("Failed to load deadlines");
+    }
+    
+    const deadlinesData = await deadlinesResponse.json();
+    console.log("[NOTIFICATIONS] Deadlines data:", deadlinesData);
+
+    // Display notifications - Fixed to properly extract array
+    const notificationsArray = notifData.data || notifData.notifications || [];
+    console.log("[NOTIFICATIONS] About to display", notificationsArray.length, "notifications");
+    displayNotifications(Array.isArray(notificationsArray) ? notificationsArray : []);
+    
+    // Display deadlines - Fixed to properly extract array
+    const deadlinesArray = deadlinesData.data || deadlinesData.deadlines || [];
+    console.log("[NOTIFICATIONS] About to display", deadlinesArray.length, "deadlines");
+    displayDeadlines(Array.isArray(deadlinesArray) ? deadlinesArray : []);
+    
+  } catch (error) {
+    console.error("[NOTIFICATIONS] Error loading:", error);
+    notifList.innerHTML = `<div class="text-danger text-center py-3">${error.message}</div>`;
+    deadlinesList.innerHTML = `<div class="text-danger text-center py-3">${error.message}</div>`;
+  }
+}
+
 
   /**
    * Display notifications
    */
-  function displayNotifications(notifications) {
-    const notifList = document.getElementById("notificationsList");
-    
-    console.log("[NOTIFICATIONS] Displaying", notifications.length, "notifications");
-    
-    if (notifications.length === 0) {
-      notifList.innerHTML = `
-        <div class="text-center text-muted py-4">
-          <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-          <p class="mb-0">No notifications</p>
-        </div>
-      `;
-      return;
-    }
-
-    // Add count header
-    const countHeader = `
-      <div class="p-3 bg-light border-bottom">
-        <small class="text-muted">
-          <strong>${notifications.length}</strong> notification${notifications.length !== 1 ? 's' : ''}
-        </small>
+ /**
+ * Display notifications
+ */
+function displayNotifications(notifications) {
+  const notifList = document.getElementById("notificationsList");
+  
+  console.log("[NOTIFICATIONS] displayNotifications called");
+  console.log("[NOTIFICATIONS] Received:", notifications);
+  console.log("[NOTIFICATIONS] Type:", typeof notifications);
+  console.log("[NOTIFICATIONS] Is array:", Array.isArray(notifications));
+  console.log("[NOTIFICATIONS] Length:", notifications.length);
+  
+  if (!notifList) {
+    console.error("[NOTIFICATIONS] notificationsList element not found!");
+    return;
+  }
+  
+  if (!notifications || notifications.length === 0) {
+    console.log("[NOTIFICATIONS] No notifications to display");
+    notifList.innerHTML = `
+      <div class="text-center text-muted py-4">
+        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+        <p class="mb-0">No notifications</p>
       </div>
     `;
+    return;
+  }
 
-    notifList.innerHTML = countHeader + notifications
-      .map((notif) => {
-        const date = new Date(notif.createdAt);
-        const timeAgo = getTimeAgo(date);
-        
-        return `
-          <div class="notification-item ${notif.read ? '' : 'unread'} p-3 border-bottom">
-            <div class="d-flex justify-content-between align-items-start">
-              <div class="flex-grow-1">
-                <h6 class="mb-1 fw-semibold">
-                  ${!notif.read ? '<i class="bi bi-circle-fill text-primary me-2" style="font-size: 8px;"></i>' : ''}
-                  ${notif.title}
-                </h6>
-                <p class="mb-1 text-muted small">${notif.message}</p>
-                <small class="text-muted">
-                  <i class="bi bi-clock me-1"></i>${timeAgo}
-                  ${notif.read ? ' <span class="text-success">✓ Read</span>' : ''}
-                </small>
-              </div>
+  // Add count header
+  const countHeader = `
+    <div class="p-3 bg-light border-bottom">
+      <small class="text-muted">
+        <strong>${notifications.length}</strong> notification${notifications.length !== 1 ? 's' : ''}
+      </small>
+    </div>
+  `;
+
+  const notificationHTML = notifications
+    .map((notif) => {
+      console.log("[NOTIFICATIONS] Processing notification:", notif.title, notif.createdAt);
+      const date = new Date(notif.createdAt);
+      const timeAgo = getTimeAgo(date);
+      
+      return `
+        <div class="notification-item ${notif.read ? '' : 'unread'} p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <h6 class="mb-1 fw-semibold">
+                ${!notif.read ? '<i class="bi bi-circle-fill text-primary me-2" style="font-size: 8px;"></i>' : ''}
+                ${notif.title}
+              </h6>
+              <p class="mb-1 text-muted small">${notif.message}</p>
+              <small class="text-muted">
+                <i class="bi bi-clock me-1"></i>${timeAgo}
+                ${notif.read ? ' <span class="text-success">✓ Read</span>' : ''}
+              </small>
             </div>
           </div>
-        `;
-      })
-      .join("");
-  }
+        </div>
+      `;
+    })
+    .join("");
+
+  console.log("[NOTIFICATIONS] Generated HTML length:", notificationHTML.length);
+  notifList.innerHTML = countHeader + notificationHTML;
+  console.log("[NOTIFICATIONS] Successfully displayed notifications");
+}
 
   /**
    * Display deadlines

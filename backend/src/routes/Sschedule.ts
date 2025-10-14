@@ -38,7 +38,7 @@ router.get(
       // âœ… Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† ÙˆØ¬ÙˆØ¯ Ù†ØªØ§Ø¦Ø¬
       if (schedules.length === 0) {
         return res.status(404).json({
-          error: `Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø¬Ø¯ÙˆÙ„ Ù„Ù„Ù…Ø³ØªÙˆÙ‰ ${level} Ø¨Ù†Ø³Ø®Ø© 2 Ø£Ùˆ Ø£Ø¹Ù„Ù‰.`,
+          error: `No published schedule for level ${level}.`,
         });
       }
 

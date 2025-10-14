@@ -1,7 +1,3 @@
-// ========================================
-// 🧩 SMART SCHEDULE FRONTEND LOGIC (v2.0)
-// ========================================
-
 let selectedLevel = 3;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -31,9 +27,6 @@ function setupLevelButtonListeners() {
   });
 }
 
-// -------------------------------
-// ⚙️ Generate Schedule Button Logic
-// -------------------------------
 function setupGenerateButtonListener() {
   const generateBtn = document.getElementById("generateBtn");
   if (!generateBtn) return console.error("❌ Generate button not found!");

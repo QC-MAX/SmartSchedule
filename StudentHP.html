@@ -57,7 +57,6 @@
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link active" href="#">
-                            <i class="bi bi-house-door"></i> Home
                         </a>
                     </li>
                 </ul>
@@ -65,8 +64,7 @@
                     <li class="nav-item">
                         <a class="nav-link position-relative" href="#" data-bs-toggle="modal" data-bs-target="#notificationsModal">
                             <i class="bi bi-bell"></i> 
-                            <span class="badge bg-danger badge-custom">3</span>
-                        </a>
+<span class="badge bg-danger badge-custom" style="display: none;"></span>                        </a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
@@ -298,9 +296,49 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/Sschedule.js"></script>
-        <script src="assets/js/elective-form.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/notifications.js"></script>
+<script src="assets/js/Sschedule.js"></script>
+<script src="assets/js/elective-form.js"></script>
+
+<!-- Add this script block -->
+<script>
+  // Logout function
+  function logout() {
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    window.location.href = "LoginReg.html";
+  }
+
+  // Update user display on page load
+  document.addEventListener("DOMContentLoaded", () => {
+    const raw = sessionStorage.getItem("user");
+    let user = null;
+    
+    try {
+      user = raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      console.warn("Could not parse user:", e);
+    }
+
+    if (user) {
+      const firstName = user.First_Name || user.firstName || "";
+      const lastName = user.Last_Name || user.lastName || "";
+      const displayName = [firstName, lastName].filter(Boolean).join(" ").trim() || "Student";
+      
+      // Update all occurrences of the student name
+      const userDropdown = document.querySelector(".nav-link.dropdown-toggle");
+      if (userDropdown) {
+        userDropdown.innerHTML = `<i class="bi bi-person-circle"></i> ${displayName}`;
+      }
+      
+      const welcomeHeader = document.querySelector(".student-welcome h3");
+      if (welcomeHeader) {
+        welcomeHeader.textContent = `Welcome back, ${firstName || displayName}!`;
+      }
+    }
+  });
+</script>
 
 </body>
 </html>
