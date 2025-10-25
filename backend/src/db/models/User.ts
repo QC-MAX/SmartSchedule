@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
+import bcrypt from "bcrypt";
 
 /**
  * 🧩 TypeScript interface for strong typing
@@ -11,10 +12,11 @@ export interface IUser extends Document {
   Password: string;
   role: "Faculty" | "Scheduler" | "LoadCommittee" | "Student";
   comments: mongoose.Types.ObjectId[];
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
 /**
- * 🏗️ User Schema
+ * 🗃️ User Schema
  * Mirrors the existing MongoDB documents exactly
  * with enhancements for auto-generating userID and supporting Student role.
  */
@@ -46,6 +48,7 @@ const UserSchema = new Schema<IUser>(
     Password: {
       type: String,
       required: true,
+      minlength: 6,
     },
     role: {
       type: String,
@@ -67,7 +70,7 @@ const UserSchema = new Schema<IUser>(
 );
 
 /**
- * 📌 Indexes for efficient lookup
+ * 🔌 Indexes for efficient lookup
  */
 UserSchema.index({ userID: 1 });
 UserSchema.index({ Email: 1 });
@@ -84,6 +87,35 @@ UserSchema.pre<IUser>("validate", async function (next) {
   }
   next();
 });
+
+/**
+ * 🔒 Pre-save hook to hash password before saving
+ */
+UserSchema.pre<IUser>("save", async function (next) {
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified("Password")) return next();
+
+  try {
+    // Generate salt and hash password
+    const saltRounds = 12; // Higher = more secure but slower
+    const hashedPassword = await bcrypt.hash(this.Password, saltRounds);
+    this.Password = hashedPassword;
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
+
+/**
+ * 🔍 Instance method to compare passwords
+ */
+UserSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
+  try {
+    return await bcrypt.compare(candidatePassword, this.Password);
+  } catch (error) {
+    throw new Error("Password comparison failed");
+  }
+};
 
 /**
  * 📤 Export the model
